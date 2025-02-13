@@ -3,7 +3,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from ..database import get_db
 from ..models import User
-from ..schema import UserLogin
 from ..utils import verify_password, create_access_token
 from fastapi.security import OAuth2PasswordRequestForm
 
