@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String
+from sqlalchemy import Column, Integer, String, ForeignKey
 from sqlalchemy.orm import relationship
 from app.database import Base
 
@@ -16,3 +16,5 @@ class Hospital(Base):
 
     patients = relationship("Patient", back_populates="hospital", cascade="all, delete")
     doctors = relationship("Doctor", back_populates="hospital")
+    admin_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), unique=True, nullable=True)
+    admin = relationship("User", back_populates="hospital", uselist=False, foreign_keys=[admin_id])

@@ -44,14 +44,14 @@ async def delete_user_api(user_id: int, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=404, detail="User not found")
     return user
 
-@router.post("/login", response_model=TokenResponse)
-async def login(email: str = Form(...), password: str = Form(...), db: AsyncSession = Depends(get_db)):
+@router.post("/login", response_model=UserResponse)
+async def login( email: str, password: str, db: AsyncSession = Depends(get_db),):
+    
     user = await authenticate_user(db, email, password)
     if not user:
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
-    access_token = create_access_token(data={"sub": user.email}, expires_delta=timedelta(minutes=30))
-    return {"access_token": access_token, "token_type": "Bearer"}
+    return user 
 
 @router.delete("/logout")
 async def logout():

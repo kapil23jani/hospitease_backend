@@ -15,14 +15,21 @@ class UserCreate(UserBase):
         
 class UserUpdate(UserBase):
     password: Optional[str] = None
-    
+
+class RoleResponse(BaseModel):
+    id: int
+    name: str
+
+    class Config:
+        orm_mode = True
 class UserResponse(UserBase):
     id: Optional[int]
+    role: Optional[RoleResponse]  # Add role information
 
     class Config:
         orm_mode = True
 
 class TokenResponse(BaseModel):
     access_token: str
-    token_type: str = "Bearer"
+    token_type: str
     user: UserResponse
