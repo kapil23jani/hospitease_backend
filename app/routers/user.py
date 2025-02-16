@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Form
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.schemas import UserCreate, UserUpdate, UserResponse
 from app.database import get_db
@@ -45,22 +45,14 @@ async def delete_user_api(user_id: int, db: AsyncSession = Depends(get_db)):
     return user
 
 @router.post("/login", response_model=TokenResponse)
-async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db)):
-    user = await authenticate_user(db, form_data.username, form_data.password)
-    access_token = create_access_token(data={"sub": user.email, "role": user.role_id}, expires_delta=timedelta(minutes=30))
-    
-    return {
-        "access_token": access_token,
-        "token_type": "Bearer",
-        "user": {
-            "id": user.id,
-            "email": user.email,
-            "role_id": user.role_id,
-            "first_name": user.first_name,
-            "last_name": user.last_name
-        }
-    }
+async def login(email: str = Form(...), password: str = Form(...), db: AsyncSession = Depends(get_db)):
+    user = await authenticate_user(db, email, password)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
 
-@router.post("/logout")
+    access_token = create_access_token(data={"sub": user.email}, expires_delta=timedelta(minutes=30))
+    return {"access_token": access_token, "token_type": "Bearer"}
+
+@router.delete("/logout")
 async def logout():
     return {"message": "Logout successful"}

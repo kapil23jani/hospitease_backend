@@ -61,11 +61,20 @@ async def delete_user(db: AsyncSession, user_id: int):
     await db.commit()
     return user
 
-async def authenticate_user(db: AsyncSession, email: str, password: str):
+async def get_user_by_email(db: AsyncSession, email: str):
     result = await db.execute(select(User).where(User.email == email))
-    user = result.scalars().first()
+    return result.scalar_one_or_none()
 
-    if not user or not verify_password(password, user.password):
-        raise HTTPException(status_code=401, detail="Invalid credentials")
-
+async def create_user(db: AsyncSession, email: str, password: str):
+    hashed_password = hash_password(password)
+    user = User(email=email, password=hashed_password)
+    db.add(user)
+    await db.commit()
+    await db.refresh(user)
     return user
+
+async def authenticate_user(db: AsyncSession, email: str, password: str):
+    user = await get_user_by_email(db, email)
+    if user and verify_password(password, user.password):
+        return user
+    return None
