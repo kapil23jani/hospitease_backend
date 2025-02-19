@@ -24,7 +24,7 @@ class RoleResponse(BaseModel):
         orm_mode = True
 class UserResponse(UserBase):
     id: Optional[int]
-    role: Optional[RoleResponse]  # Add role information
+    # role: Optional[RoleResponse]  # Add role information
 
     class Config:
         orm_mode = True
