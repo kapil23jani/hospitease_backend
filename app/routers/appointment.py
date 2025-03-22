@@ -4,7 +4,7 @@ from app.database import get_db
 from app.crud.appointment import (
     create_appointment, get_appointments, get_appointment_by_id,
     update_appointment, delete_appointment, get_appointments_by_doctor_id,
-    get_appointments_by_patient_id
+    get_appointments_by_patient_id, get_listing_appointments
 )
 from app.schemas.appointment import AppointmentCreate, AppointmentUpdate, AppointmentResponse
 from typing import List
@@ -18,6 +18,10 @@ async def create_new_appointment(appointment: AppointmentCreate, db: AsyncSessio
 @router.get("/", response_model=List[AppointmentResponse])
 async def list_appointments(skip: int = 0, limit: int = 100, db: AsyncSession = Depends(get_db)):
     return await get_appointments(db, skip, limit)
+
+@router.get("/listing", response_model=List[AppointmentResponse])
+async def list_appointments(skip: int = 0, limit: int = 100, db: AsyncSession = Depends(get_db)):
+    return await get_listing_appointments(db, skip, limit)
 
 @router.get("/{appointment_id}", response_model=AppointmentResponse)
 async def get_appointment(appointment_id: int, db: AsyncSession = Depends(get_db)):

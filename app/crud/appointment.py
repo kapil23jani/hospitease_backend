@@ -3,7 +3,11 @@ from sqlalchemy.future import select
 from sqlalchemy.orm import joinedload
 from app.models.appointment import Appointment
 from app.schemas.appointment import AppointmentCreate, AppointmentUpdate
+from app.schemas.appointment import AppointmentResponse, DoctorResponse, PatientResponse, AppointmentListingResponse
 from datetime import timedelta
+from app.models.doctor import Doctor
+from app.models.patient import Patient
+from typing import List
 
 async def create_appointment(db: AsyncSession, appointment: AppointmentCreate):
     appointment_datetime = appointment.appointment_datetime.replace(tzinfo=None)
@@ -30,6 +34,32 @@ async def get_appointments(db: AsyncSession, skip: int = 0, limit: int = 100):
         .limit(limit)
     )
     return result.scalars().all()
+
+async def get_listing_appointments(db: AsyncSession, skip: int = 0, limit: int = 100) -> List[AppointmentListingResponse]:
+    result = await db.execute(
+        select(Appointment)
+        .options(joinedload(Appointment.patient), joinedload(Appointment.doctor))
+        .offset(skip)
+        .limit(limit)
+    )
+    appointments = result.scalars().all()
+
+    response = []
+    for appt in appointments:
+        doctor = DoctorResponse.from_orm(appt.doctor)
+        patient = PatientResponse.from_orm(appt.patient)
+
+        response.append(AppointmentResponse(
+            id=appt.id,
+            patient=patient,
+            doctor=doctor,
+            appointment_datetime=appt.appointment_datetime,
+            problem=appt.problem,
+            appointment_type=appt.appointment_type,
+            reason=appt.reason,
+        ))
+    
+    return response
 
 async def get_appointment_by_id(db: AsyncSession, appointment_id: int):
     result = await db.execute(
