@@ -22,6 +22,9 @@ class Patient(Base):
     email = Column(String, nullable=True, unique=True)
     occupation = Column(String, nullable=True)
     is_dialysis_patient = Column(Boolean, default=False)
+    zipcode = Column(String, nullable=True)
+    marital_status = Column(String, nullable=True)
+    patient_unique_id = Column(String, unique=True, index=True, nullable=False)  # ✅ Unique Identifier
 
     hospital_id = Column(Integer, ForeignKey("hospitals.id"), nullable=False)
     hospital = relationship("Hospital", back_populates="patients")

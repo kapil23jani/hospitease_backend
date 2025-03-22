@@ -5,7 +5,7 @@ from typing import Optional
 class AppointmentBase(BaseModel):
     patient_id: int
     doctor_id: int
-    appointment_datetime: datetime
+    appointment_datetime: datetime  # No conversion
     problem: Optional[str] = None
     appointment_type: Optional[str] = None
     reason: Optional[str] = None
@@ -23,4 +23,4 @@ class AppointmentResponse(AppointmentBase):
     id: int
 
     class Config:
-        from_attributes = True
+        from_attributes = True  # Ensures correct datetime handling

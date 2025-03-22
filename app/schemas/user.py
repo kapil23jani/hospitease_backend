@@ -1,5 +1,6 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, computed_field, EmailStr
 from typing import Optional
+
 class UserBase(BaseModel):
     first_name: str
     last_name: str
@@ -24,7 +25,16 @@ class RoleResponse(BaseModel):
         orm_mode = True
 class UserResponse(UserBase):
     id: Optional[int]
-    # role: Optional[RoleResponse]  # Add role information
+    role: Optional[RoleResponse]
+
+    @computed_field
+    @property
+    def role_name(self) -> Optional[str]:
+        """Returns the role name from role object"""
+        return self.role.name if self.role else None
+
+    class Config:
+        orm_mode = True
 
     class Config:
         orm_mode = True

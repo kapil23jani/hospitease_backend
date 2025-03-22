@@ -8,11 +8,13 @@ from sqlalchemy.exc import IntegrityError
 from fastapi import HTTPException
 from app.utils import hash_password, verify_password, create_access_token
 from sqlalchemy.orm import joinedload
-
+import logging
 from sqlalchemy.exc import IntegrityError
 from fastapi import HTTPException
 from app.models.user import User
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 async def create_user(db: AsyncSession, user: UserCreate):
@@ -25,7 +27,7 @@ async def create_user(db: AsyncSession, user: UserCreate):
             gender=user.gender,
             email=user.email,
             phone_number=user.phone_number,
-            password=hashed_password,  # Store the hashed password
+            password=user.password,  # Store the hashed password
             role_id=user.role_id
         )
         db.add(new_user)
@@ -75,8 +77,8 @@ async def authenticate_user(db: AsyncSession, email: str, password: str):
     stmt = select(User).options(joinedload(User.role)).where(User.email == email)
     result = await db.execute(stmt)
     user = result.scalars().first()
-
-    if not user or not verify_password(password, user.password):
+    logger.info(f"Received login request: password={password}, password={user.password}")
+    logger.info(f"Received login request: user_bbj={user}")
+    if password.strip() != user.password.strip():
         return None
-
     return user

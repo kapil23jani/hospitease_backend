@@ -9,10 +9,13 @@ from app.schemas.user import UserCreate, TokenResponse, UserResponse
 from app.crud.user import create_user, authenticate_user
 from app.utils import create_access_token
 from datetime import timedelta
+import logging
 
 router = APIRouter()
 
 router = APIRouter()
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 @router.post("/", response_model=UserResponse)
 async def create_user_api(user: UserCreate, db: AsyncSession = Depends(get_db)):
@@ -48,6 +51,7 @@ async def delete_user_api(user_id: int, db: AsyncSession = Depends(get_db)):
 async def login( email: str, password: str, db: AsyncSession = Depends(get_db),):
     
     user = await authenticate_user(db, email, password)
+    logger.info(f"Received login request: email={email}, password={password}")
     if not user:
         raise HTTPException(status_code=401, detail="Invalid credentials")
 

@@ -18,7 +18,11 @@ class PatientBase(BaseModel):
     email: Optional[EmailStr] = None
     occupation: Optional[str] = None
     is_dialysis_patient: bool = False
+    marital_status: Optional[str] = None
+    zipcode: Optional[str] = None
     hospital_id: int
+    patient_unique_id:  Optional[str] = None
+
 
 class PatientCreate(PatientBase):
     pass

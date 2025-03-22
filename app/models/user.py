@@ -15,3 +15,4 @@ class User(Base):
     role_id = Column(Integer, ForeignKey('roles.id'))
     role = relationship('Role', back_populates='users')
     hospital = relationship("Hospital", back_populates="admin", uselist=False)
+    doctor = relationship("Doctor", back_populates="user", uselist=False)
