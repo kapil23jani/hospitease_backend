@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.database import AsyncSessionLocal, engine
 from app.models import Base
-from app.routers import role, user, hospital, patient, doctor, appointment
+from app.routers import role, user, hospital, patient, doctor, appointment, symtom, vital, test, appointment_medicine
 
 app = FastAPI(title="Hospitease API", version="1.0.0")
 
@@ -32,6 +32,12 @@ app.include_router(hospital.router, prefix="/hospitals", tags=["Hospitals"])
 app.include_router(patient.router, prefix="/patients", tags=["Patients"])
 app.include_router(doctor.router, prefix="/doctors", tags=["Doctors"])
 app.include_router(appointment.router, prefix="/appointments", tags=["Appointments"])
+app.include_router(symtom.router, prefix="/symptoms", tags=["Symtoms"])
+app.include_router(vital.router, prefix="/vitals", tags=["Vitals"])
+app.include_router(test.router, prefix="/tests", tags=["Tests"])
+app.include_router(appointment_medicine.router, prefix="/appointment_medicines", tags=["Appointment Medicines"])
+
+
 
 @app.get("/", tags=["Health"])
 async def health_check():

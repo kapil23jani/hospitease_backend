@@ -13,5 +13,9 @@ class Appointment(Base):
     appointment_type = Column(String, nullable=True)
     reason = Column(String, nullable=True)
 
-    patient = relationship("Patient", back_populates="appointments", lazy="selectin")  # ✅ Change lazy mode
-    doctor = relationship("Doctor", back_populates="appointments", lazy="selectin")  # ✅ Change lazy mode
+    patient = relationship("Patient", back_populates="appointments", lazy="selectin")
+    doctor = relationship("Doctor", back_populates="appointments", lazy="selectin")
+    symptoms = relationship("Symptom", back_populates="appointment", cascade="all, delete-orphan")
+    vitals = relationship("Vital", back_populates="appointment")
+    tests = relationship("Test", back_populates="patient")
+    medicines = relationship("Medicine", back_populates="appointment")

@@ -6,7 +6,7 @@ from app.crud.appointment import (
     update_appointment, delete_appointment, get_appointments_by_doctor_id,
     get_appointments_by_patient_id, get_listing_appointments
 )
-from app.schemas.appointment import AppointmentCreate, AppointmentUpdate, AppointmentResponse
+from app.schemas.appointment import AppointmentCreate, AppointmentUpdate, AppointmentResponse, AppointmentListingResponse
 from typing import List
 
 router = APIRouter()
@@ -19,7 +19,7 @@ async def create_new_appointment(appointment: AppointmentCreate, db: AsyncSessio
 async def list_appointments(skip: int = 0, limit: int = 100, db: AsyncSession = Depends(get_db)):
     return await get_appointments(db, skip, limit)
 
-@router.get("/listing", response_model=List[AppointmentResponse])
+@router.get("/listing", response_model=List[AppointmentListingResponse])
 async def list_appointments(skip: int = 0, limit: int = 100, db: AsyncSession = Depends(get_db)):
     return await get_listing_appointments(db, skip, limit)
 

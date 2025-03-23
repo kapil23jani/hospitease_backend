@@ -49,7 +49,7 @@ async def get_listing_appointments(db: AsyncSession, skip: int = 0, limit: int =
         doctor = DoctorResponse.from_orm(appt.doctor)
         patient = PatientResponse.from_orm(appt.patient)
 
-        response.append(AppointmentResponse(
+        response.append(AppointmentListingResponse(
             id=appt.id,
             patient=patient,
             doctor=doctor,

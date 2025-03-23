@@ -5,7 +5,8 @@ Base = declarative_base()
 from app.models.role import Role
 from app.models.hospital import Hospital
 from app.models.patient import Patient
-
 from .appointment import Appointment
 from .patient import Patient
 from .doctor import Doctor
+from .symtom import Symptom
+from .vital import Vital
