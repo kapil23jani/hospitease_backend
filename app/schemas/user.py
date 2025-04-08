@@ -38,7 +38,10 @@ class UserResponse(UserBase):
 
     class Config:
         orm_mode = True
-
+class ChangePasswordRequest(BaseModel):
+    username: str
+    current_password: str
+    new_password: str
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str

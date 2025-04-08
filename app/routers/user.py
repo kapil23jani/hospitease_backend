@@ -2,14 +2,17 @@ from fastapi import APIRouter, Depends, HTTPException, Form
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.schemas import UserCreate, UserUpdate, UserResponse
 from app.database import get_db
-from app.crud.user import create_user, get_user, get_users, update_user, delete_user
+from app.crud.user import create_user, get_user, get_users, update_user, delete_user, change_password
 from fastapi.security import OAuth2PasswordRequestForm
 from app.database import get_db
-from app.schemas.user import UserCreate, TokenResponse, UserResponse
+from app.schemas.user import UserCreate, TokenResponse, UserResponse, ChangePasswordRequest
 from app.crud.user import create_user, authenticate_user
 from app.utils import create_access_token
 from datetime import timedelta
 import logging
+from sqlalchemy import select
+from passlib.context import CryptContext
+from app.models import User
 
 router = APIRouter()
 
@@ -60,3 +63,15 @@ async def login( email: str, password: str, db: AsyncSession = Depends(get_db),)
 @router.delete("/logout")
 async def logout():
     return {"message": "Logout successful"}
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+async def change_password(db: AsyncSession, email: str, current_password: str, new_password: str):
+    result = await db.execute(select(User).where(User.email == email))
+    user = result.scalar_one_or_none()
+    if user is None:
+        return {"error": "User not found"}
+    if not pwd_context.verify(current_password, user.hashed_password):
+        return {"error": "Current password is incorrect"}
+    user.hashed_password = pwd_context.hash(new_password)
+    await db.commit()
+    return {"message": "Password updated successfully"}

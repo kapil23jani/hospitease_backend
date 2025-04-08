@@ -10,3 +10,5 @@ from .patient import Patient
 from .doctor import Doctor
 from .symtom import Symptom
 from .vital import Vital
+from .user import User
+

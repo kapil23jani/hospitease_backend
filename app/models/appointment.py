@@ -19,3 +19,12 @@ class Appointment(Base):
     vitals = relationship("Vital", back_populates="appointment")
     tests = relationship("Test", back_populates="patient")
     medicines = relationship("Medicine", back_populates="appointment")
+    documents = relationship(
+        "AppointmentDocument",
+        primaryjoin="and_(Appointment.id == foreign(Document.documentable_id), Document.documentable_type == 'appointment')",
+        lazy="selectin"
+    )
+    health_info = relationship("HealthInfo", back_populates="appointment", uselist=False, cascade="all, delete-orphan")
+    # family_histories = relationship("FamilyHistory", back_populates="appointment", cascade="all, delete-orphan", lazy="selectin")
+    # family_histories = relationship("FamilyHistory", back_populates="appointment")
+    family_histories = relationship("FamilyHistory", back_populates="appointment")

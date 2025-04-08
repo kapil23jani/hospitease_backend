@@ -25,6 +25,7 @@ class DoctorBase(BaseModel):
     email: Optional[EmailStr] = None
     is_active: Optional[bool] = True
     hospital_id: int
+    user_id: Optional[int] = None
 
 class DoctorCreate(DoctorBase):
     password: str  # Required for user creation
@@ -51,6 +52,7 @@ class DoctorUpdate(BaseModel):
     phone_number: Optional[str] = None
     email: Optional[EmailStr] = None
     is_active: Optional[bool] = None
+    user_id: Optional[int] = None
 
 class DoctorResponse(DoctorBase):
     id: int

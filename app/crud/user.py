@@ -82,3 +82,16 @@ async def authenticate_user(db: AsyncSession, email: str, password: str):
     if password.strip() != user.password.strip():
         return None
     return user
+
+async def change_password(db: AsyncSession, email: str, current_password: str, new_password: str):
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        return {"error": "User not found"}
+
+    if not (User.password == current_password):
+        return {"error": "Current password is incorrect"}
+
+    user.hashed_password = new_password
+    db.commit()
+    db.refresh(user)
+    return {"success": True}

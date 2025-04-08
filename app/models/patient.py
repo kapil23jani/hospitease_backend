@@ -29,3 +29,4 @@ class Patient(Base):
     hospital_id = Column(Integer, ForeignKey("hospitals.id"), nullable=False)
     hospital = relationship("Hospital", back_populates="patients")
     appointments = relationship("Appointment", back_populates="patient", cascade="all, delete")
+    medical_histories = relationship("MedicalHistory", back_populates="patient", cascade="all, delete-orphan")
