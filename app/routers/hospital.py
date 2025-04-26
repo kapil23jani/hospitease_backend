@@ -14,7 +14,7 @@ async def create_hospital_route(hospital: HospitalCreate, db: Session = Depends(
     return await create_hospital(db, hospital)
 
 @router.get("/", response_model=List[HospitalResponse])
-async def get_all_hospitals_route(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
+async def get_all_hospitals_route(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     return await get_hospitals(db, skip, limit)
 
 @router.get("/{hospital_id}", response_model=HospitalResponse)

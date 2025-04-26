@@ -4,6 +4,8 @@ from sqlalchemy.orm import joinedload
 from app.models.patient import Patient
 from app.schemas.patient import PatientCreate, PatientUpdate, PatientResponse
 import uuid
+from sqlalchemy import text
+
 
 async def get_patients(db: AsyncSession):
     result = await db.execute(
@@ -18,7 +20,9 @@ async def get_patient(db: AsyncSession, patient_id: int):
     return PatientResponse.model_validate(patient) if patient else None
 
 async def create_patient(db: AsyncSession, patient_data: PatientCreate):
-    result = await db.execute("SELECT patient_unique_id FROM patients ORDER BY id DESC LIMIT 1")
+    result = await db.execute(
+        text("SELECT patient_unique_id FROM patients ORDER BY id DESC LIMIT 1")
+    )
     last_patient_id = result.scalar()
 
     if last_patient_id and last_patient_id.startswith("PAT"):

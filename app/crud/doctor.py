@@ -1,34 +1,26 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy.exc import NoResultFound
-from app.models.doctor import Doctor
-from app.schemas.doctor import DoctorCreate, DoctorUpdate
-
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
 from sqlalchemy.exc import IntegrityError
 from fastapi import HTTPException
 from passlib.context import CryptContext
-
 from app.models.user import User
 from app.models.role import Role
 from app.models.doctor import Doctor
-from app.schemas.doctor import DoctorCreate
+from app.models.hospital import Hospital
+from app.schemas.doctor import DoctorCreate, DoctorUpdate
+from sqlalchemy.orm import selectinload
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 async def create_doctor(db: AsyncSession, doctor: DoctorCreate):
     try:
-        # Hash the password
         hashed_password = pwd_context.hash(doctor.password)
 
-        # Get the 'Doctor' role
         role_result = await db.execute(select(Role).filter(Role.name == "Doctor"))
         doctor_role = role_result.scalars().first()
         if not doctor_role:
             raise HTTPException(status_code=400, detail="Doctor role not found")
 
-        # Check if the user already exists
         user_result = await db.execute(select(User).filter(User.email == doctor.email))
         user = user_result.scalars().first()
 
@@ -38,15 +30,14 @@ async def create_doctor(db: AsyncSession, doctor: DoctorCreate):
                 last_name=doctor.last_name,
                 email=doctor.email,
                 password=hashed_password,
-                role_id=doctor_role.id  # Assign Doctor role
+                role_id=doctor_role.id
             )
             db.add(new_user)
             await db.commit()
             await db.refresh(new_user)
         else:
-            new_user = user  # Use existing user
-
-        # Create a new Doctor entry with all fields
+            new_user = user
+        
         new_doctor = Doctor(
             title=doctor.title,
             first_name=doctor.first_name,
@@ -82,13 +73,13 @@ async def create_doctor(db: AsyncSession, doctor: DoctorCreate):
         await db.rollback()
         raise HTTPException(status_code=400, detail=f"Integrity Error: {str(e)}")
 
-
-async def get_doctors(db: AsyncSession, skip: int = 0, limit: int = 10):
-    result = await db.execute(select(Doctor).offset(skip).limit(limit))
-    return result.scalars().all()
+async def get_doctors(db: AsyncSession, skip: int = 0, limit: int = 100):
+    result = await db.execute(select(Doctor).offset(skip).limit(limit).options(selectinload(Doctor.hospital)))  # Assuming selectinload
+    doctors = result.scalars().all()
+    return doctors
 
 async def get_doctor_by_id(db: AsyncSession, doctor_id: int):
-    result = await db.execute(select(Doctor).where(Doctor.id == doctor_id))
+    result = await db.execute(select(Doctor).where(Doctor.id == doctor_id).options(selectinload(Doctor.hospital)))  # Assuming selectinload
     doctor = result.scalar_one_or_none()
     return doctor
 

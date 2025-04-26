@@ -1,11 +1,13 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-
-from app.models.hospital import Hospital
-from app.models.user import User  # Import User model
+from sqlalchemy.orm import selectinload
 from sqlalchemy.exc import IntegrityError
 from fastapi import HTTPException
+
+from app.models.hospital import Hospital
+from app.models.user import User
 from app.schemas.hospital import HospitalCreate, HospitalUpdate
+
 
 async def create_hospital(db: AsyncSession, hospital: HospitalCreate):
     try:
@@ -17,13 +19,25 @@ async def create_hospital(db: AsyncSession, hospital: HospitalCreate):
 
         new_hospital = Hospital(
             name=hospital.name,
-            address=hospital.address,
-            city=hospital.city,
-            state=hospital.state,
-            country=hospital.country,
-            phone_number=hospital.phone_number,
-            email=hospital.email,
-            admin_id=hospital.admin_id
+            registration_number=hospital.registration_number,
+            type=hospital.type,
+            logo_url=hospital.logo_url,
+            website=hospital.website,
+            admin_id=hospital.admin_id,
+            owner_name=hospital.owner_name,
+            admin_contact_number=hospital.admin_contact_number,
+            number_of_beds=hospital.number_of_beds,
+            departments=hospital.departments,
+            specialties=hospital.specialties,
+            facilities=hospital.facilities,
+            ambulance_services=hospital.ambulance_services,
+            opening_hours=hospital.opening_hours,
+            license_number=hospital.license_number,
+            license_expiry_date=hospital.license_expiry_date,
+            is_accredited=hospital.is_accredited,
+            external_id=hospital.external_id,
+            timezone=hospital.timezone,
+            is_active=hospital.is_active,
         )
         db.add(new_hospital)
         await db.commit()
@@ -33,16 +47,26 @@ async def create_hospital(db: AsyncSession, hospital: HospitalCreate):
         await db.rollback()
         raise HTTPException(status_code=400, detail=f"Integrity Error: {str(e)}")
 
+
 async def get_hospital(db: AsyncSession, hospital_id: int):
-    result = await db.execute(selectinload(Hospital.admin).filter(Hospital.id == hospital_id))
+    stmt = select(Hospital).options(selectinload(Hospital.admin)).filter(Hospital.id == hospital_id)
+    result = await db.execute(stmt)
     hospital = result.scalars().first()
     if not hospital:
         raise HTTPException(status_code=404, detail="Hospital not found")
     return hospital
 
-async def get_hospitals(db: AsyncSession, skip: int = 0, limit: int = 10):
-    result = await db.execute(selectinload(Hospital.admin).offset(skip).limit(limit))
+
+async def get_hospitals(db: AsyncSession, skip: int = 0, limit: int = 100):
+    stmt = (
+        select(Hospital)
+        .options(selectinload(Hospital.admin))
+        .offset(skip)
+        .limit(limit)
+    )
+    result = await db.execute(stmt)
     return result.scalars().all()
+
 
 async def update_hospital(db: AsyncSession, hospital_id: int, hospital_update: HospitalUpdate):
     db_hospital = await get_hospital(db, hospital_id)
@@ -52,6 +76,7 @@ async def update_hospital(db: AsyncSession, hospital_id: int, hospital_update: H
         await db.commit()
         await db.refresh(db_hospital)
     return db_hospital
+
 
 async def delete_hospital(db: AsyncSession, hospital_id: int):
     db_hospital = await get_hospital(db, hospital_id)

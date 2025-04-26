@@ -1,7 +1,8 @@
-from sqlalchemy import Column, Integer, ForeignKey, DateTime, String
+from sqlalchemy import Column, Integer, ForeignKey, DateTime, String, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import text
 from app.database import Base
+
 class Appointment(Base):
     __tablename__ = "appointments"
 
@@ -12,6 +13,18 @@ class Appointment(Base):
     problem = Column(String, nullable=True)
     appointment_type = Column(String, nullable=True)
     reason = Column(String, nullable=True)
+    created_at = Column(DateTime, nullable=False)
+    updated_at = Column(DateTime, nullable=False)
+
+    blood_pressure = Column(String, nullable=True)
+    pulse_rate = Column(String, nullable=True)
+    temperature = Column(String, nullable=True)
+    spo2 = Column(String, nullable=True)
+    weight = Column(String, nullable=True)
+    additional_notes = Column(Text, nullable=True)
+    advice = Column(Text, nullable=True)
+    follow_up_date = Column(DateTime, nullable=True)
+    follow_up_notes = Column(Text, nullable=True)
 
     patient = relationship("Patient", back_populates="appointments", lazy="selectin")
     doctor = relationship("Doctor", back_populates="appointments", lazy="selectin")
@@ -25,6 +38,4 @@ class Appointment(Base):
         lazy="selectin"
     )
     health_info = relationship("HealthInfo", back_populates="appointment", uselist=False, cascade="all, delete-orphan")
-    # family_histories = relationship("FamilyHistory", back_populates="appointment", cascade="all, delete-orphan", lazy="selectin")
-    # family_histories = relationship("FamilyHistory", back_populates="appointment")
     family_histories = relationship("FamilyHistory", back_populates="appointment")

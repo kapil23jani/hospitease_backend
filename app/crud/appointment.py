@@ -9,16 +9,26 @@ from app.models.doctor import Doctor
 from app.models.patient import Patient
 from typing import List
 
+# Create Appointment Function
 async def create_appointment(db: AsyncSession, appointment: AppointmentCreate):
     appointment_datetime = appointment.appointment_datetime.replace(tzinfo=None)
 
     db_appointment = Appointment(
         patient_id=appointment.patient_id,
         doctor_id=appointment.doctor_id,
-        appointment_datetime=appointment_datetime,
+        appointment_datetime=appointment.appointment_datetime,
         problem=appointment.problem,
         appointment_type=appointment.appointment_type,
-        reason=appointment.reason
+        reason=appointment.reason,
+        blood_pressure=appointment.blood_pressure,
+        pulse_rate=appointment.pulse_rate,
+        temperature=appointment.temperature,
+        spo2=appointment.spo2,
+        weight=appointment.weight,
+        additional_notes=appointment.additional_notes,
+        advice=appointment.advice,
+        follow_up_date=appointment.follow_up_date,
+        follow_up_notes=appointment.follow_up_notes,
     )
     db.add(db_appointment)
     await db.commit()
@@ -26,6 +36,7 @@ async def create_appointment(db: AsyncSession, appointment: AppointmentCreate):
 
     return db_appointment
 
+# Get Appointments (List)
 async def get_appointments(db: AsyncSession, skip: int = 0, limit: int = 100):
     result = await db.execute(
         select(Appointment)
@@ -35,6 +46,7 @@ async def get_appointments(db: AsyncSession, skip: int = 0, limit: int = 100):
     )
     return result.scalars().all()
 
+# Get Listing Appointments (with Patient and Doctor included)
 async def get_listing_appointments(db: AsyncSession, skip: int = 0, limit: int = 100) -> List[AppointmentListingResponse]:
     result = await db.execute(
         select(Appointment)
@@ -57,10 +69,22 @@ async def get_listing_appointments(db: AsyncSession, skip: int = 0, limit: int =
             problem=appt.problem,
             appointment_type=appt.appointment_type,
             reason=appt.reason,
+            blood_pressure=appt.blood_pressure,
+            pulse_rate=appt.pulse_rate,
+            temperature=appt.temperature,
+            spo2=appt.spo2,
+            weight=appt.weight,
+            additional_notes=appt.additional_notes,
+            advice=appt.advice,
+            follow_up_date=appt.follow_up_date,
+            follow_up_notes=appt.follow_up_notes,
+            updated_at=appt.updated_at,
         ))
     
     return response
 
+
+# Get Appointment by ID (with Patient and Doctor)
 async def get_appointment_by_id(db: AsyncSession, appointment_id: int):
     result = await db.execute(
         select(Appointment)
@@ -100,6 +124,9 @@ async def update_appointment(db: AsyncSession, appointment_id: int, appointment:
 
     if "appointment_datetime" in update_data:
         update_data["appointment_datetime"] = update_data["appointment_datetime"].replace(tzinfo=None)
+
+    if "follow_up_date" in update_data:
+        update_data["follow_up_date"] = update_data["follow_up_date"].replace(tzinfo=None)
 
     for key, value in update_data.items():
         setattr(db_appointment, key, value)

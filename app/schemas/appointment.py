@@ -10,6 +10,18 @@ class AppointmentBase(BaseModel):
     appointment_type: Optional[str] = None
     reason: Optional[str] = None
 
+    blood_pressure: Optional[str] = None
+    pulse_rate: Optional[str] = None
+    temperature: Optional[str] = None
+    spo2: Optional[str] = None
+    weight: Optional[str] = None
+    additional_notes: Optional[str] = None
+    advice: Optional[str] = None
+    follow_up_date: Optional[datetime] = None
+    follow_up_notes: Optional[str] = None
+
+
+# Schema for creating an appointment
 class AppointmentCreate(AppointmentBase):
     pass
 
@@ -19,6 +31,18 @@ class AppointmentUpdate(BaseModel):
     appointment_type: Optional[str] = None
     reason: Optional[str] = None
 
+    blood_pressure: Optional[str] = None
+    pulse_rate: Optional[str] = None
+    temperature: Optional[str] = None
+    spo2: Optional[str] = None
+    weight: Optional[str] = None
+    additional_notes: Optional[str] = None
+    advice: Optional[str] = None
+    follow_up_date: Optional[datetime] = None
+    follow_up_notes: Optional[str] = None
+
+
+# Schema for detailed response
 class AppointmentResponse(AppointmentBase):
     id: int
 
@@ -56,8 +80,8 @@ class PatientResponse(BaseModel):
 
 class AppointmentListingResponse(BaseModel):
     id: int
-    patient: PatientResponse
-    doctor: DoctorResponse
+    # patient: PatientResponse
+    # doctor: DoctorResponse
     appointment_datetime: datetime
     problem: str
     appointment_type: str

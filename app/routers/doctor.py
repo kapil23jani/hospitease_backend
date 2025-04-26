@@ -4,6 +4,9 @@ from app.database import get_db
 from app.crud.doctor import create_doctor, get_doctors, get_doctor_by_id, update_doctor, delete_doctor
 from app.schemas.doctor import DoctorCreate, DoctorUpdate, DoctorResponse
 from typing import List
+from app.models.doctor import Doctor
+from app.models.hospital import Hospital
+from sqlalchemy.future import select
 
 router = APIRouter()
 
@@ -35,3 +38,16 @@ async def delete_doctor_entry(doctor_id: int, db: AsyncSession = Depends(get_db)
     if not success:
         raise HTTPException(status_code=404, detail="Doctor not found")
     return {"message": "Doctor deleted successfully"}
+
+@router.get("/{doctor_id}", response_model=DoctorResponse)
+async def get_doctor_with_hospital(doctor_id: int, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(Doctor)
+        .join(Hospital)
+        .where(Doctor.id == doctor_id)
+    )
+    doctor = result.scalar_one_or_none()
+
+    if not doctor:
+        raise HTTPException(status_code=404, detail="Doctor not found")
+    return doctor

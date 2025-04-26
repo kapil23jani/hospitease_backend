@@ -13,5 +13,8 @@ class Medicine(Base):
     duration = Column(String, nullable=False)
     start_date = Column(String, nullable=False)
     status = Column(String, nullable=False)
-
+    time_interval = Column(String, nullable=False)
+    route = Column(String, nullable=False)
+    quantity = Column(String, nullable=False)
+    instruction = Column(String, nullable=False)
     appointment = relationship("Appointment", back_populates="medicines")
