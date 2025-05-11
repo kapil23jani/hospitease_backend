@@ -35,3 +35,10 @@ class PatientResponse(PatientBase):
 
     class Config:
         from_attributes = True
+class PatientBasicResponse(BaseModel):
+    id: int
+    uniqueId: str
+    name: str
+    phone: Optional[str]
+    age: Optional[int]
+    gender: str

@@ -11,7 +11,6 @@ from app.schemas.doctor import DoctorCreate, DoctorUpdate
 from sqlalchemy.orm import selectinload
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
 async def create_doctor(db: AsyncSession, doctor: DoctorCreate):
     try:
         hashed_password = pwd_context.hash(doctor.password)
@@ -106,3 +105,12 @@ async def delete_doctor(db: AsyncSession, doctor_id: int):
         await db.commit()
         return True
     return False
+
+async def get_doctors_by_hospital(db: AsyncSession, hospital_id: int):
+    result = await db.execute(
+        select(Doctor)
+        .where(Doctor.hospital_id == hospital_id)
+        .options(selectinload(Doctor.hospital))
+    )
+    doctors = result.scalars().all()
+    return doctors

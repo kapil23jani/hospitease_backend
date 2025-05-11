@@ -11,14 +11,20 @@ from typing import List
 from datetime import datetime, timedelta, timezone
 from typing import List
 from sqlalchemy.orm import selectinload
+from datetime import datetime
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
+from sqlalchemy.orm import joinedload
+from app.schemas.appointment import AppointmentListingResponse, DoctorResponse, PatientResponse
+from app.models.appointment import Appointment
+from sqlalchemy import cast, Date
 
 async def create_appointment(db: AsyncSession, appointment: AppointmentCreate):
-    appointment_datetime = appointment.appointment_datetime.replace(tzinfo=None)
 
     db_appointment = Appointment(
         patient_id=appointment.patient_id,
         doctor_id=appointment.doctor_id,
-        appointment_datetime=appointment_datetime,
+        appointment_datetime=appointment.appointment_datetime,
         problem=appointment.problem,
         appointment_type=appointment.appointment_type,
         reason=appointment.reason,
@@ -31,6 +37,9 @@ async def create_appointment(db: AsyncSession, appointment: AppointmentCreate):
         advice=appointment.advice,
         follow_up_date=appointment.follow_up_date,
         follow_up_notes=appointment.follow_up_notes,
+        appointment_date=appointment.appointment_date,
+        appointment_time=appointment.appointment_time,
+        hospital_id=appointment.hospital_id
     )
     db.add(db_appointment)
     await db.commit()
@@ -65,7 +74,6 @@ async def get_listing_appointments(db: AsyncSession, skip: int = 0, limit: int =
             id=appt.id,
             patient=patient,
             doctor=doctor,
-            appointment_datetime=appt.appointment_datetime,
             problem=appt.problem,
             appointment_type=appt.appointment_type,
             reason=appt.reason,
@@ -79,6 +87,9 @@ async def get_listing_appointments(db: AsyncSession, skip: int = 0, limit: int =
             follow_up_date=appt.follow_up_date,
             follow_up_notes=appt.follow_up_notes,
             updated_at=appt.updated_at,
+            appointment_date=appt.appointment_date,
+            appointment_time=appt.appointment_time,
+            hospital_id=appt.hospital_id
         ))
     
     return response
@@ -120,12 +131,6 @@ async def update_appointment(db: AsyncSession, appointment_id: int, appointment:
 
     update_data = appointment.dict(exclude_unset=True)
 
-    if "appointment_datetime" in update_data:
-        update_data["appointment_datetime"] = update_data["appointment_datetime"].replace(tzinfo=None)
-
-    if "follow_up_date" in update_data:
-        update_data["follow_up_date"] = update_data["follow_up_date"].replace(tzinfo=None)
-
     for key, value in update_data.items():
         setattr(db_appointment, key, value)
 
@@ -164,11 +169,18 @@ async def get_doctor_by_appointment_id(db: AsyncSession, appointment_id: int):
     return appointment.doctor if appointment else None
 
 async def get_grouped_appointments(db: AsyncSession):
+    # Current time and date
     now = datetime.utcnow()
     today_start = datetime(now.year, now.month, now.day)
     today_end = today_start + timedelta(days=1)
     next_2_days = today_end + timedelta(days=2)
     prev_2_days = today_start - timedelta(days=2)
+
+    # Convert datetime to string in the same format as the database
+    prev_2_days_str = prev_2_days.strftime("%Y-%m-%d")
+    next_2_days_str = next_2_days.strftime("%Y-%m-%d")
+    today_start_str = today_start.strftime("%Y-%m-%d")
+    today_end_str = today_end.strftime("%Y-%m-%d")
 
     result = await db.execute(
         select(Appointment)
@@ -176,23 +188,18 @@ async def get_grouped_appointments(db: AsyncSession):
             selectinload(Appointment.patient),
             selectinload(Appointment.doctor)
         )
-        .filter(Appointment.appointment_datetime >= prev_2_days)
-        .filter(Appointment.appointment_datetime < next_2_days)
+        .filter(Appointment.appointment_date >= prev_2_days_str)
+        .filter(Appointment.appointment_date < next_2_days_str)
     )
     appointments = result.scalars().all()
 
     today, upcoming, past = [], [], []
 
     for appt in appointments:
-        appt_time = appt.appointment_datetime
-        if appt_time.tzinfo is not None:
-            appt_time = appt_time.replace(tzinfo=None)
-
         response_data = AppointmentListingResponse(
             id=appt.id,
             patient=PatientResponse.from_orm(appt.patient),
             doctor=DoctorResponse.from_orm(appt.doctor),
-            appointment_datetime=appt.appointment_datetime,
             problem=appt.problem,
             appointment_type=appt.appointment_type,
             reason=appt.reason,
@@ -206,52 +213,43 @@ async def get_grouped_appointments(db: AsyncSession):
             follow_up_date=appt.follow_up_date,
             follow_up_notes=appt.follow_up_notes,
             updated_at=appt.updated_at,
+            appointment_date=appt.appointment_date,
+            appointment_time=appt.appointment_time,
+            hospital_id=appt.hospital_id
         )
 
-        if today_start <= appt_time < today_end:
+        if today_start_str <= appt.appointment_date < today_end_str:
             today.append(response_data)
-        elif today_end <= appt_time < next_2_days:
+        elif today_end_str <= appt.appointment_date < next_2_days_str:
             upcoming.append(response_data)
-        elif prev_2_days <= appt_time < today_start:
+        elif prev_2_days_str <= appt.appointment_date < today_start_str:
             past.append(response_data)
 
-    today.sort(key=lambda x: x.appointment_datetime)
-    upcoming.sort(key=lambda x: x.appointment_datetime)
-    past.sort(key=lambda x: x.appointment_datetime)
+    today.sort(key=lambda x: x.appointment_date)
+    upcoming.sort(key=lambda x: x.appointment_date)
+    past.sort(key=lambda x: x.appointment_date)
 
     return {
         "today": today,
         "upcoming": upcoming,
         "past": past,
     }
-
-from datetime import datetime
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
-from sqlalchemy.orm import joinedload
-from app.schemas.appointment import AppointmentListingResponse, DoctorResponse, PatientResponse
-from app.models.appointment import Appointment
-
 async def get_appointments_by_date_range(
     db: AsyncSession, start_date: str, end_date: str, skip: int = 0, limit: int = 100
 ):
     try:
-        # Ensure the dates are in the correct format
         try:
-            start_datetime = datetime.strptime(start_date, "%Y-%m-%d")
-            end_datetime = datetime.strptime(end_date, "%Y-%m-%d")
+            start_date_obj = datetime.strptime(start_date, "%Y-%m-%d").date()
+            end_date_obj = datetime.strptime(end_date, "%Y-%m-%d").date()
         except ValueError as e:
             return {"error": f"Invalid date format. Please use YYYY-MM-DD. Details: {str(e)}"}
 
-        # Adjust the end date to the last moment of the day (23:59:59.999999)
-        end_datetime = end_datetime.replace(hour=23, minute=59, second=59, microsecond=999999)
-
-        # Execute the query to get appointments in the given range
+        # Query filtering directly on date column
         result = await db.execute(
             select(Appointment)
             .options(joinedload(Appointment.patient), joinedload(Appointment.doctor))
-            .filter(Appointment.appointment_datetime >= start_datetime)
-            .filter(Appointment.appointment_datetime <= end_datetime)
+            .filter(Appointment.appointment_date >= start_date_obj)
+            .filter(Appointment.appointment_date <= end_date_obj)
             .offset(skip)
             .limit(limit)
         )
@@ -270,7 +268,6 @@ async def get_appointments_by_date_range(
                 id=appt.id,
                 patient=patient,
                 doctor=doctor,
-                appointment_datetime=appt.appointment_datetime,
                 problem=appt.problem,
                 appointment_type=appt.appointment_type,
                 reason=appt.reason,
@@ -284,9 +281,72 @@ async def get_appointments_by_date_range(
                 follow_up_date=appt.follow_up_date,
                 follow_up_notes=appt.follow_up_notes,
                 updated_at=appt.updated_at,
+                appointment_date=appt.appointment_date,
+                appointment_time=appt.appointment_time,
+                hospital_id=appt.hospital_id
             ))
 
         return response
     except Exception as e:
-        # Handle any unexpected exceptions
         return {"error": f"An unexpected error occurred: {str(e)}"}
+
+async def get_appointments_by_hospital_id(
+    db: AsyncSession, hospital_id: int, start_date: str, end_date: str
+):
+    try:
+        print(f"[DEBUG] Called get_appointments_by_hospital_id with hospital_id = {hospital_id}, start_date = {start_date}, end_date = {end_date}")
+
+        # Convert the string date to datetime
+        try:
+            start_datetime = datetime.strptime(start_date, "%Y-%m-%d")
+            end_datetime = datetime.strptime(end_date, "%Y-%m-%d")
+        except ValueError as e:
+            print(f"[ERROR] Invalid date format: {e}")
+            raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD.")
+
+        appt_result = await db.execute(
+            select(Appointment)
+            .options(joinedload(Appointment.patient), joinedload(Appointment.doctor))
+            .filter(
+                Appointment.hospital_id == hospital_id,
+                cast(Appointment.appointment_date, Date) >= start_datetime.date(),
+                cast(Appointment.appointment_date, Date) <= end_datetime.date()
+            )
+        )
+        appointments = appt_result.scalars().all()
+        print(f"[DEBUG] Fetched {len(appointments)} appointments from DB")
+
+        if not appointments:
+            print("[DEBUG] No appointments found, returning empty list")
+            return []
+
+        response = []
+        for idx, appt in enumerate(appointments):
+            print(f"[DEBUG] Processing appointment #{idx + 1}")
+            print(f"    appt.id = {appt.id}")
+            print(f"    appt.patient = {appt.patient.first_name if appt.patient else 'None'}")
+            print(f"    appt.doctor = {appt.doctor.first_name if appt.doctor else 'None'}")
+            print(f"    appt.appointment_date = {appt.appointment_date}")
+            print(f"    appt.appointment_time = {appt.appointment_time}")
+
+            response.append({
+                "id": appt.id,
+                "title": f"Patient: {appt.patient.first_name} {appt.patient.last_name}" if appt.patient else "Patient: Unknown",
+                "appointment_date": appt.appointment_date,
+                "appointment_time": appt.appointment_time,
+                "appointment_type": appt.appointment_type,
+                "doctor_id": appt.doctor_id,
+                "patient_id": appt.patient_id,
+                "appointment_datetime": f"{appt.appointment_date}T{appt.appointment_time}" if appt.appointment_date and appt.appointment_time else None,
+                "doctor": f"Dr. {appt.doctor.first_name} {appt.doctor.last_name}" if appt.doctor else "Dr. Unknown"
+            })
+
+        print(f"[DEBUG] Returning {len(response)} appointments in response")
+        return response
+
+    except Exception as e:
+        print(f"[ERROR] Unexpected error in get_appointments_by_hospital_id: {e}")
+        return []
+        
+
+        

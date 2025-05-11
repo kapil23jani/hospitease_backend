@@ -4,7 +4,7 @@ from app.database import get_db
 from pydantic import BaseModel
 
 from app.crud.appointment import (
-    get_appointments_by_date_range, create_appointment, get_appointments, get_appointment_by_id,
+    get_appointments_by_date_range, create_appointment, get_appointments, get_appointment_by_id, get_appointments_by_hospital_id,
     update_appointment, delete_appointment, get_appointments_by_doctor_id,
     get_appointments_by_patient_id, get_listing_appointments, get_doctor_by_appointment_id, get_patient_by_appointment_id, get_grouped_appointments
 )
@@ -94,3 +94,10 @@ async def get_appointments_by_date_range_endpoint(
         return {"appointments": appointments}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+    
+@router.get("/by_hospital/{hospital_id}", response_model=List[dict])
+async def list_appointments_by_hospital(hospital_id: int, start_date: str, end_date: str, db: AsyncSession = Depends(get_db)):
+    appointments = await get_appointments_by_hospital_id(db, hospital_id, start_date, end_date)
+    if not appointments:
+        raise HTTPException(status_code=404, detail="No appointments found for this hospital.")
+    return appointments

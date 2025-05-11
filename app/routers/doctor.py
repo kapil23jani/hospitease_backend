@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
-from app.crud.doctor import create_doctor, get_doctors, get_doctor_by_id, update_doctor, delete_doctor
+from app.crud.doctor import create_doctor, get_doctors, get_doctor_by_id, update_doctor, delete_doctor, get_doctors_by_hospital
 from app.schemas.doctor import DoctorCreate, DoctorUpdate, DoctorResponse
 from typing import List
 from app.models.doctor import Doctor
@@ -51,3 +51,8 @@ async def get_doctor_with_hospital(doctor_id: int, db: AsyncSession = Depends(ge
     if not doctor:
         raise HTTPException(status_code=404, detail="Doctor not found")
     return doctor
+
+@router.get("/by-hospital/{hospital_id}", response_model=List[DoctorResponse])
+async def read_doctors_by_hospital(hospital_id: int, db: AsyncSession = Depends(get_db)):
+    doctors = await get_doctors_by_hospital(db, hospital_id)
+    return doctors

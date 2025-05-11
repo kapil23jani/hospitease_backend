@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
-from app.crud.patient import get_patients, get_patient, create_patient, update_patient, delete_patient, search_patients, get_hospital_by_patient_id
-from app.schemas.patient import PatientCreate, PatientUpdate, PatientResponse
+from app.crud.patient import get_patients, get_patient, create_patient, get_patients_by_hospital_id, update_patient, delete_patient, search_patients, get_hospital_by_patient_id
+from app.schemas.patient import PatientCreate, PatientUpdate, PatientResponse, PatientBasicResponse
 from typing import List, Optional
 from app.schemas.hospital import HospitalResponse
 
@@ -67,3 +67,13 @@ async def read_hospital_by_patient_id(patient_id: int, db: AsyncSession = Depend
     if not hospital:
         raise HTTPException(status_code=404, detail="Hospital not found for this patient")
     return hospital
+
+@router.get("/by-hospital/{hospital_id}", response_model=List[PatientBasicResponse])
+async def get_patients_by_hospital(
+    hospital_id: int,
+    db: AsyncSession = Depends(get_db)
+):
+    patients = await get_patients_by_hospital_id(db, hospital_id)
+    if not patients:
+        raise HTTPException(status_code=404, detail="No patients found for this hospital")
+    return patients

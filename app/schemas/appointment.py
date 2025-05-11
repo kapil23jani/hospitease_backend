@@ -7,7 +7,8 @@ from typing import Optional
 class AppointmentBase(BaseModel):
     patient_id: int
     doctor_id: int
-    appointment_datetime: datetime  # No conversion
+    hospital_id: int
+    appointment_datetime: Optional[str] = None  # No conversion
     problem: Optional[str] = None
     appointment_type: Optional[str] = None
     reason: Optional[str] = None
@@ -20,8 +21,10 @@ class AppointmentBase(BaseModel):
     weight: Optional[str] = None
     additional_notes: Optional[str] = None
     advice: Optional[str] = None
-    follow_up_date: Optional[datetime] = None
+    follow_up_date: Optional[str] = None
     follow_up_notes: Optional[str] = None
+    appointment_date: Optional[str] = None
+    appointment_time: Optional[str] = None
 
 
 # Schema for creating an appointment
@@ -31,11 +34,12 @@ class AppointmentCreate(AppointmentBase):
 
 # Schema for updating an appointment
 class AppointmentUpdate(BaseModel):
-    appointment_datetime: Optional[datetime] = None
+    appointment_datetime: Optional[str] = None
     problem: Optional[str] = None
     appointment_type: Optional[str] = None
     reason: Optional[str] = None
-
+    appointment_date: Optional[str] = None
+    appointment_time: Optional[str] = None
     blood_pressure: Optional[str] = None
     pulse_rate: Optional[str] = None
     temperature: Optional[str] = None
@@ -43,8 +47,10 @@ class AppointmentUpdate(BaseModel):
     weight: Optional[str] = None
     additional_notes: Optional[str] = None
     advice: Optional[str] = None
-    follow_up_date: Optional[datetime] = None
+    follow_up_date: Optional[str] = None
     follow_up_notes: Optional[str] = None
+    appointment_date: Optional[str] = None
+    appointment_time: Optional[str] = None
 
 
 # Schema for detailed response of an appointment
@@ -89,15 +95,14 @@ class PatientResponse(BaseModel):
         )
 
 
-# Schema for listing appointments, now including patient and doctor info
 class AppointmentListingResponse(BaseModel):
     id: int
-    patient: PatientResponse  # Include PatientResponse for patient info
-    doctor: DoctorResponse  # Include DoctorResponse for doctor info
-    appointment_datetime: datetime
+    patient: PatientResponse
+    doctor: DoctorResponse
     problem: Optional[str]
     appointment_type: Optional[str]
     reason: Optional[str]
-
+    appointment_date: Optional[str]
+    appointment_time: Optional[str]
     class Config:
-        from_attributes = True  # Ensures correct datetime handling
+        from_attributes = True  

@@ -5,8 +5,9 @@ from app.models.patient import Patient
 from app.models.hospital import Hospital
 from app.schemas.patient import PatientCreate, PatientUpdate, PatientResponse
 import uuid
+from datetime import datetime
 from sqlalchemy import text
-
+from typing import List
 
 async def get_patients(db: AsyncSession):
     result = await db.execute(
@@ -92,3 +93,33 @@ async def get_hospital_by_patient_id(db: AsyncSession, patient_id: int):
     )
     hospital = result.scalars().first()
     return hospital
+
+def calculate_age(date_of_birth: str) -> int:
+    if not date_of_birth:
+        return None
+    try:
+        dob = datetime.strptime(date_of_birth, "%Y-%m-%d")
+        today = datetime.today()
+        return today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
+    except ValueError:
+        return None
+
+async def get_patients_by_hospital_id(db: AsyncSession, hospital_id: int) -> List[dict]:
+    result = await db.execute(
+        select(Patient).filter(Patient.hospital_id == hospital_id)
+    )
+    patients = result.scalars().all()
+
+    response = []
+    for patient in patients:
+        full_name = " ".join(filter(None, [patient.first_name, patient.middle_name, patient.last_name]))
+        response.append({
+            "id": patient.id,
+            "uniqueId": patient.patient_unique_id,
+            "name": full_name,
+            "phone": patient.phone_number,
+            "age": calculate_age(patient.date_of_birth),
+            "gender": patient.gender
+        })
+
+    return response
