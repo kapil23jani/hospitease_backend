@@ -3,6 +3,8 @@ from sqlalchemy.future import select
 from typing import List, Optional
 from app.models.test import Test
 from app.schemas.test import TestCreate, TestUpdate
+from app.models.appointment import Appointment
+from app.models.patient import Patient
 
 async def create_test(db: AsyncSession, test: TestCreate):
     new_test = Test(
@@ -59,3 +61,14 @@ async def delete_test(db: AsyncSession, test_id: int):
     await db.delete(db_test)
     await db.commit()
     return db_test
+
+async def get_tests_by_patient_id(db: AsyncSession, patient_id: int, skip: int = 0, limit: int = 100) -> List[Test]:
+    query = (
+        select(Test)
+        .join(Appointment, Test.appointment_id == Appointment.id)
+        .where(Appointment.patient_id == patient_id)
+        .offset(skip)
+        .limit(limit)
+    )
+    result = await db.execute(query)
+    return result.scalars().all()

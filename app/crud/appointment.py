@@ -8,15 +8,17 @@ from datetime import timedelta
 from app.models.doctor import Doctor
 from app.models.patient import Patient
 from typing import List
+from datetime import datetime, timedelta, timezone
+from typing import List
+from sqlalchemy.orm import selectinload
 
-# Create Appointment Function
 async def create_appointment(db: AsyncSession, appointment: AppointmentCreate):
     appointment_datetime = appointment.appointment_datetime.replace(tzinfo=None)
 
     db_appointment = Appointment(
         patient_id=appointment.patient_id,
         doctor_id=appointment.doctor_id,
-        appointment_datetime=appointment.appointment_datetime,
+        appointment_datetime=appointment_datetime,
         problem=appointment.problem,
         appointment_type=appointment.appointment_type,
         reason=appointment.reason,
@@ -36,7 +38,6 @@ async def create_appointment(db: AsyncSession, appointment: AppointmentCreate):
 
     return db_appointment
 
-# Get Appointments (List)
 async def get_appointments(db: AsyncSession, skip: int = 0, limit: int = 100):
     result = await db.execute(
         select(Appointment)
@@ -46,7 +47,6 @@ async def get_appointments(db: AsyncSession, skip: int = 0, limit: int = 100):
     )
     return result.scalars().all()
 
-# Get Listing Appointments (with Patient and Doctor included)
 async def get_listing_appointments(db: AsyncSession, skip: int = 0, limit: int = 100) -> List[AppointmentListingResponse]:
     result = await db.execute(
         select(Appointment)
@@ -83,8 +83,6 @@ async def get_listing_appointments(db: AsyncSession, skip: int = 0, limit: int =
     
     return response
 
-
-# Get Appointment by ID (with Patient and Doctor)
 async def get_appointment_by_id(db: AsyncSession, appointment_id: int):
     result = await db.execute(
         select(Appointment)
@@ -144,3 +142,134 @@ async def delete_appointment(db: AsyncSession, appointment_id: int):
         await db.commit()
         return True
     return False
+
+async def get_patient_by_appointment_id(db: AsyncSession, appointment_id: int):
+    result = await db.execute(
+        select(Appointment)
+        .options(joinedload(Appointment.patient))
+        .filter(Appointment.id == appointment_id)
+    )
+    appointment = result.scalars().first()
+    return appointment.patient if appointment else None
+
+async def get_doctor_by_appointment_id(db: AsyncSession, appointment_id: int):
+    result = await db.execute(
+        select(Appointment)
+        .options(
+            joinedload(Appointment.doctor).joinedload(Doctor.hospital)  # load hospital as well
+        )
+        .filter(Appointment.id == appointment_id)
+    )
+    appointment = result.scalars().first()
+    return appointment.doctor if appointment else None
+
+async def get_grouped_appointments(db: AsyncSession):
+    now = datetime.utcnow()
+    today_start = datetime(now.year, now.month, now.day)
+    today_end = today_start + timedelta(days=1)
+    next_2_days = today_end + timedelta(days=2)
+    prev_2_days = today_start - timedelta(days=2)
+
+    result = await db.execute(
+        select(Appointment)
+        .options(
+            selectinload(Appointment.patient),
+            selectinload(Appointment.doctor)
+        )
+        .filter(Appointment.appointment_datetime >= prev_2_days)
+        .filter(Appointment.appointment_datetime < next_2_days)
+    )
+    appointments = result.scalars().all()
+
+    today, upcoming, past = [], [], []
+
+    for appt in appointments:
+        appt_time = appt.appointment_datetime
+        if appt_time.tzinfo is not None:
+            appt_time = appt_time.replace(tzinfo=None)
+
+        response_data = AppointmentListingResponse(
+            id=appt.id,
+            patient=PatientResponse.from_orm(appt.patient),
+            doctor=DoctorResponse.from_orm(appt.doctor),
+            appointment_datetime=appt.appointment_datetime,
+            problem=appt.problem,
+            appointment_type=appt.appointment_type,
+            reason=appt.reason,
+            blood_pressure=appt.blood_pressure,
+            pulse_rate=appt.pulse_rate,
+            temperature=appt.temperature,
+            spo2=appt.spo2,
+            weight=appt.weight,
+            additional_notes=appt.additional_notes,
+            advice=appt.advice,
+            follow_up_date=appt.follow_up_date,
+            follow_up_notes=appt.follow_up_notes,
+            updated_at=appt.updated_at,
+        )
+
+        if today_start <= appt_time < today_end:
+            today.append(response_data)
+        elif today_end <= appt_time < next_2_days:
+            upcoming.append(response_data)
+        elif prev_2_days <= appt_time < today_start:
+            past.append(response_data)
+
+    today.sort(key=lambda x: x.appointment_datetime)
+    upcoming.sort(key=lambda x: x.appointment_datetime)
+    past.sort(key=lambda x: x.appointment_datetime)
+
+    return {
+        "today": today,
+        "upcoming": upcoming,
+        "past": past,
+    }
+
+async def get_appointments_by_date_range(
+    db: AsyncSession, start_date: str, end_date: str, skip: int = 0, limit: int = 100
+):
+    try:
+        start_datetime = datetime.strptime(start_date, "%Y-%m-%d")
+        end_datetime = datetime.strptime(end_date, "%Y-%m-%d")
+
+        end_datetime = end_datetime.replace(hour=23, minute=59, second=59, microsecond=999999)
+
+        result = await db.execute(
+            select(Appointment)
+            .options(joinedload(Appointment.patient), joinedload(Appointment.doctor))
+            .filter(Appointment.appointment_datetime >= start_datetime)
+            .filter(Appointment.appointment_datetime <= end_datetime)
+            .offset(skip)
+            .limit(limit)
+        )
+        appointments = result.scalars().all()
+
+        response = []
+        for appt in appointments:
+            doctor = DoctorResponse.from_orm(appt.doctor)
+            patient = PatientResponse.from_orm(appt.patient)
+
+            response.append(AppointmentListingResponse(
+                id=appt.id,
+                patient=patient,
+                doctor=doctor,
+                appointment_datetime=appt.appointment_datetime,
+                problem=appt.problem,
+                appointment_type=appt.appointment_type,
+                reason=appt.reason,
+                blood_pressure=appt.blood_pressure,
+                pulse_rate=appt.pulse_rate,
+                temperature=appt.temperature,
+                spo2=appt.spo2,
+                weight=appt.weight,
+                additional_notes=appt.additional_notes,
+                advice=appt.advice,
+                follow_up_date=appt.follow_up_date,
+                follow_up_notes=appt.follow_up_notes,
+                updated_at=appt.updated_at,
+            ))
+
+        return response
+    except Exception as e:
+        # Handle any exceptions, like invalid date format
+        return {"error": str(e)}

@@ -3,6 +3,7 @@ from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 from app.models.symtom import Symptom
 from app.schemas.symtom import SymptomCreate, SymptomUpdate
+from app.models import Appointment
 
 async def create_symptom(db: AsyncSession, symptom: SymptomCreate):
     new_symptom = Symptom(
@@ -78,3 +79,19 @@ async def delete_symptom(db: AsyncSession, symptom_id: int):
     await db.delete(db_symptom)
     await db.commit()
     return db_symptom
+
+async def get_all_symptoms_by_patient_id(
+    db: AsyncSession,
+    patient_id: int,
+    skip: int = 0,
+    limit: int = 100
+) -> List[Symptom]:
+    stmt = (
+        select(Symptom)
+        .join(Appointment)
+        .where(Appointment.patient_id == patient_id)
+        .offset(skip)
+        .limit(limit)
+    )
+    result = await db.execute(stmt)
+    return result.scalars().all()

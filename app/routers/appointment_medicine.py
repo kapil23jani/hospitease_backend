@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
 from app.database import get_db
 from app.schemas.appointment_medicine import MedicineCreate, MedicineUpdate, MedicineOut
-from app.crud.appointment_medicine import create_medicine, get_medicines_by_appointment_id, get_medicine_by_id, update_medicine, delete_medicine
+from app.crud.appointment_medicine import create_medicine, get_medicines_by_appointment_id, get_medicine_by_id, update_medicine, delete_medicine, get_all_medicines_by_patient_id
 
 router = APIRouter()
 
@@ -35,3 +35,7 @@ async def delete_medicine_api(medicine_id: int, db: AsyncSession = Depends(get_d
     if not deleted_medicine:
         raise HTTPException(status_code=404, detail="Medicine not found")
     return {"message": "Medicine deleted successfully"}
+
+@router.get("/patients/{patient_id}/medicines")
+async def get_patient_medicines(patient_id: int, db: AsyncSession = Depends(get_db)):
+    return await get_all_medicines_by_patient_id(db, patient_id)

@@ -2,6 +2,7 @@ from sqlalchemy.future import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 from app.models.patient import Patient
+from app.models.hospital import Hospital
 from app.schemas.patient import PatientCreate, PatientUpdate, PatientResponse
 import uuid
 from sqlalchemy import text
@@ -77,3 +78,17 @@ async def search_patients(db: AsyncSession, search_criteria: dict):
     result = await db.execute(query)
     patients = result.scalars().all()
     return [PatientResponse.model_validate(patient) for patient in patients]
+
+async def get_hospital_by_patient_id(db: AsyncSession, patient_id: int):
+    result = await db.execute(
+        select(Patient).filter(Patient.id == patient_id)
+    )
+    patient = result.scalars().first()
+    if not patient or not patient.hospital_id:
+        return None
+
+    result = await db.execute(
+        select(Hospital).filter(Hospital.id == patient.hospital_id)
+    )
+    hospital = result.scalars().first()
+    return hospital

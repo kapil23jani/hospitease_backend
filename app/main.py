@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.database import AsyncSessionLocal, engine
 from app.models import Base
-from app.routers import role, user, hospital, patient, doctor, appointment, symtom, vital, test, appointment_medicine, appointment_document, health_info, family_history, medical_history
+from app.routers import role, user, hospital, patient, doctor, appointment, symtom, vital, test, appointment_medicine, appointment_document, health_info, family_history, medical_history, receipt
 
 app = FastAPI()
 
@@ -40,6 +40,7 @@ app.include_router(appointment_document.router, prefix="/appointment_documents",
 app.include_router(health_info.router, prefix="/health_informations", tags=["Health Informations"])
 app.include_router(family_history.router, prefix="/family_histories", tags=["Family Histories"])
 app.include_router(medical_history.router, prefix="/medical_histories", tags=["Medical Histories"])
+app.include_router(receipt.router, prefix="/receipts", tags=["Receipts"])
 
 @app.get("/", tags=["Health"])
 async def health_check():

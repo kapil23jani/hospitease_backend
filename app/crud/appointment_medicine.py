@@ -2,6 +2,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from typing import List, Optional
 from app.models.appointment_medicine import Medicine
+from app.models.patient import Patient
+from app.models.appointment import Appointment
 from app.schemas.appointment_medicine import MedicineCreate, MedicineUpdate
 
 async def create_medicine(db: AsyncSession, medicine: MedicineCreate):
@@ -49,3 +51,14 @@ async def delete_medicine(db: AsyncSession, medicine_id: int):
     await db.delete(db_medicine)
     await db.commit()
     return db_medicine
+
+async def get_all_medicines_by_patient_id(db: AsyncSession, patient_id: int, skip: int = 0, limit: int = 100) -> List[Medicine]:
+    stmt = (
+        select(Medicine)
+        .join(Appointment)
+        .where(Appointment.patient_id == patient_id)
+        .offset(skip)
+        .limit(limit)
+    )
+    result = await db.execute(stmt)
+    return result.scalars().all()

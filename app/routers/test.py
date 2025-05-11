@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 from app import crud, schemas
 from app.schemas.test import TestBase, TestCreate, TestResponse, TestUpdate
-from app.crud.test import create_test, update_test, get_test_by_id, get_tests_by_appointment_id, delete_test
+from app.crud.test import create_test, update_test, get_test_by_id, get_tests_by_appointment_id, delete_test, get_tests_by_patient_id
 
 router = APIRouter()
 
@@ -35,3 +35,7 @@ async def delete_test_api(test_id: int, db: AsyncSession = Depends(get_db)):
     if not deleted_test:
         raise HTTPException(status_code=404, detail="Test not found")
     return {"message": "Test deleted successfully"}
+
+@router.get("/patients/{patient_id}/tests", response_model=list[TestResponse])
+async def fetch_patient_tests(patient_id: int, db: AsyncSession = Depends(get_db)):
+    return await get_tests_by_patient_id(db, patient_id)

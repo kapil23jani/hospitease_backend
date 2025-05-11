@@ -94,4 +94,4 @@ class DoctorResponse(DoctorBase):
     hospital: HospitalResponse
 
     class Config:
-        from_attributes = True  # ✅ Replaces orm_mode
+        orm_mode = True

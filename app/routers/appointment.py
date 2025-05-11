@@ -1,12 +1,16 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
+from pydantic import BaseModel
+
 from app.crud.appointment import (
-    create_appointment, get_appointments, get_appointment_by_id,
+    get_appointments_by_date_range, create_appointment, get_appointments, get_appointment_by_id,
     update_appointment, delete_appointment, get_appointments_by_doctor_id,
-    get_appointments_by_patient_id, get_listing_appointments
+    get_appointments_by_patient_id, get_listing_appointments, get_doctor_by_appointment_id, get_patient_by_appointment_id, get_grouped_appointments
 )
 from app.schemas.appointment import AppointmentCreate, AppointmentUpdate, AppointmentResponse, AppointmentListingResponse
+from app.schemas.patient import PatientResponse
+from app.schemas.doctor import DoctorResponse
 from typing import List
 
 router = APIRouter()
@@ -51,3 +55,42 @@ async def list_appointments_by_doctor(doctor_id: int, skip: int = 0, limit: int 
 @router.get("/patient/{patient_id}", response_model=List[AppointmentResponse])
 async def list_appointments_by_patient(patient_id: int, skip: int = 0, limit: int = 100, db: AsyncSession = Depends(get_db)):
     return await get_appointments_by_patient_id(db, patient_id, skip, limit)
+
+@router.get("/{appointment_id}/patient", response_model=PatientResponse)
+async def fetch_patient_by_appointment(appointment_id: int, db: AsyncSession = Depends(get_db)):
+    patient = await get_patient_by_appointment_id(db, appointment_id)
+    if not patient:
+        raise HTTPException(status_code=404, detail="Patient not found")
+    return patient
+
+@router.get("/{appointment_id}/doctor", response_model=DoctorResponse)
+async def fetch_doctor_by_appointment(appointment_id: int, db: AsyncSession = Depends(get_db)):
+    doctor = await get_doctor_by_appointment_id(db, appointment_id)
+    if not doctor:
+        raise HTTPException(status_code=404, detail="Doctor not found")
+    return doctor
+
+@router.get("/grouped/list", response_model=dict)
+async def grouped(db: AsyncSession = Depends(get_db)):
+    return await get_grouped_appointments(db)
+
+
+class DateRangeRequest(BaseModel):
+    start_date: str  # "YYYY-MM-DD"
+    end_date: str  # "YYYY-MM-DD"
+
+@router.post("/appointments/by-date-range")
+async def get_appointments_by_date_range_endpoint(
+    date_range: DateRangeRequest, db: AsyncSession = Depends(get_db)
+):
+    try:
+        appointments = await get_appointments_by_date_range(
+            db,
+            start_date=date_range.start_date,
+            end_date=date_range.end_date,
+        )
+        if not appointments:
+            raise HTTPException(status_code=404, detail="No appointments found in this date range")
+        return {"appointments": appointments}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
