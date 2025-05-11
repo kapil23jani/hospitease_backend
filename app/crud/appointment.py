@@ -225,15 +225,28 @@ async def get_grouped_appointments(db: AsyncSession):
         "past": past,
     }
 
+from datetime import datetime
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
+from sqlalchemy.orm import joinedload
+from app.schemas.appointment import AppointmentListingResponse, DoctorResponse, PatientResponse
+from app.models.appointment import Appointment
+
 async def get_appointments_by_date_range(
     db: AsyncSession, start_date: str, end_date: str, skip: int = 0, limit: int = 100
 ):
     try:
-        start_datetime = datetime.strptime(start_date, "%Y-%m-%d")
-        end_datetime = datetime.strptime(end_date, "%Y-%m-%d")
+        # Ensure the dates are in the correct format
+        try:
+            start_datetime = datetime.strptime(start_date, "%Y-%m-%d")
+            end_datetime = datetime.strptime(end_date, "%Y-%m-%d")
+        except ValueError as e:
+            return {"error": f"Invalid date format. Please use YYYY-MM-DD. Details: {str(e)}"}
 
+        # Adjust the end date to the last moment of the day (23:59:59.999999)
         end_datetime = end_datetime.replace(hour=23, minute=59, second=59, microsecond=999999)
 
+        # Execute the query to get appointments in the given range
         result = await db.execute(
             select(Appointment)
             .options(joinedload(Appointment.patient), joinedload(Appointment.doctor))
@@ -244,6 +257,10 @@ async def get_appointments_by_date_range(
         )
         appointments = result.scalars().all()
 
+        if not appointments:
+            return {"message": "No appointments found for the given date range."}
+
+        # Prepare the response list
         response = []
         for appt in appointments:
             doctor = DoctorResponse.from_orm(appt.doctor)
@@ -271,5 +288,5 @@ async def get_appointments_by_date_range(
 
         return response
     except Exception as e:
-        # Handle any exceptions, like invalid date format
-        return {"error": str(e)}
+        # Handle any unexpected exceptions
+        return {"error": f"An unexpected error occurred: {str(e)}"}

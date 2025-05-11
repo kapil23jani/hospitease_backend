@@ -2,6 +2,8 @@ from pydantic import BaseModel
 from datetime import datetime
 from typing import Optional
 
+
+# Base schema for Appointment (this will be inherited)
 class AppointmentBase(BaseModel):
     patient_id: int
     doctor_id: int
@@ -10,6 +12,7 @@ class AppointmentBase(BaseModel):
     appointment_type: Optional[str] = None
     reason: Optional[str] = None
 
+    # Optional fields for other appointment details
     blood_pressure: Optional[str] = None
     pulse_rate: Optional[str] = None
     temperature: Optional[str] = None
@@ -25,6 +28,8 @@ class AppointmentBase(BaseModel):
 class AppointmentCreate(AppointmentBase):
     pass
 
+
+# Schema for updating an appointment
 class AppointmentUpdate(BaseModel):
     appointment_datetime: Optional[datetime] = None
     problem: Optional[str] = None
@@ -42,13 +47,15 @@ class AppointmentUpdate(BaseModel):
     follow_up_notes: Optional[str] = None
 
 
-# Schema for detailed response
+# Schema for detailed response of an appointment
 class AppointmentResponse(AppointmentBase):
     id: int
 
     class Config:
         from_attributes = True  # Ensures correct datetime handling
 
+
+# Schema for Doctor response
 class DoctorResponse(BaseModel):
     id: int
     first_name: str
@@ -64,6 +71,8 @@ class DoctorResponse(BaseModel):
             full_name=f"{obj.first_name} {obj.last_name}",
         )
 
+
+# Schema for Patient response
 class PatientResponse(BaseModel):
     id: int
     first_name: str
@@ -76,16 +85,19 @@ class PatientResponse(BaseModel):
             id=obj.id,
             first_name=obj.first_name,
             last_name=obj.last_name,
-            full_name=f"{obj.first_name} {obj.last_name}",        )
+            full_name=f"{obj.first_name} {obj.last_name}",
+        )
 
+
+# Schema for listing appointments, now including patient and doctor info
 class AppointmentListingResponse(BaseModel):
     id: int
-    # patient: PatientResponse
-    # doctor: DoctorResponse
+    patient: PatientResponse  # Include PatientResponse for patient info
+    doctor: DoctorResponse  # Include DoctorResponse for doctor info
     appointment_datetime: datetime
-    problem: str
-    appointment_type: str
+    problem: Optional[str]
+    appointment_type: Optional[str]
     reason: Optional[str]
-    
+
     class Config:
-        from_attributes = True
+        from_attributes = True  # Ensures correct datetime handling
