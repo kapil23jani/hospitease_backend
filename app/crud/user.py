@@ -17,9 +17,12 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
+from sqlalchemy.future import select
+from sqlalchemy.orm import selectinload
+
 async def create_user(db: AsyncSession, user: UserCreate):
     try:
-        hashed_password = pwd_context.hash(user.password)  # Hash the password
+        hashed_password = pwd_context.hash(user.password)
 
         new_user = User(
             first_name=user.first_name,
@@ -27,28 +30,37 @@ async def create_user(db: AsyncSession, user: UserCreate):
             gender=user.gender,
             email=user.email,
             phone_number=user.phone_number,
-            password=user.password,  # Store the hashed password
+            password=hashed_password,  # Ensure hashed_password is used
             role_id=user.role_id
         )
         db.add(new_user)
         await db.commit()
-        await db.refresh(new_user)
-        return new_user
+
+        # Refresh using eager loading to avoid lazy load issues
+        result = await db.execute(
+            select(User).options(selectinload(User.role)).where(User.id == new_user.id)
+        )
+        user_with_role = result.scalars().first()
+
+        return user_with_role
+
     except IntegrityError as e:
         await db.rollback()
         raise HTTPException(status_code=400, detail=f"Integrity Error: {str(e)}")
-
-
+    
 async def get_user(db: AsyncSession, user_id: int):
-    async with db.begin():
-        result = await db.execute(select(User).where(User.id == user_id))
-        user = result.scalars().first()
+    result = await db.execute(
+        select(User).options(selectinload(User.role)).where(User.id == user_id)
+    )
+    user = result.scalars().first()
     return user
 
+
 async def get_users(db: AsyncSession, skip: int = 0, limit: int = 100):
-    async with db.begin():
-        result = await db.execute(select(User).offset(skip).limit(limit))
-        users = result.scalars().all()
+    result = await db.execute(
+        select(User).options(selectinload(User.role)).offset(skip).limit(limit)
+    )
+    users = result.scalars().all()
     return users
 
 async def update_user(db: AsyncSession, user_id: int, user_data: UserCreate):

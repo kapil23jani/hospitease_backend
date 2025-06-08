@@ -27,11 +27,10 @@ async def create_patient(db: AsyncSession, patient_data: PatientCreate):
     )
     last_patient_id = result.scalar()
 
-    if last_patient_id and last_patient_id.startswith("PAT"):
-        last_number = int(last_patient_id[3:])
-        new_patient_id = f"PAT{last_number + 1:04d}"
+    if last_patient_id and last_patient_id.isdigit():
+        new_patient_id = str(int(last_patient_id) + 1)
     else:
-        new_patient_id = "PAT0001"
+        new_patient_id = "100001"
 
     patient_dict = patient_data.model_dump()
     if "patient_unique_id" not in patient_dict or not patient_dict["patient_unique_id"]:

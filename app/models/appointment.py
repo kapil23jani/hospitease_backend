@@ -27,6 +27,8 @@ class Appointment(Base):
     follow_up_notes = Column(Text, nullable=True)
     appointment_date = Column(Text, nullable=True)
     appointment_time = Column(Text, nullable=True)
+    status = Column(Text, nullable=True)
+
 
     patient = relationship("Patient", back_populates="appointments", lazy="selectin")
     doctor = relationship("Doctor", back_populates="appointments", lazy="selectin")

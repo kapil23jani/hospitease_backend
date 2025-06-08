@@ -8,3 +8,5 @@ class Role(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, index=True)
     users = relationship('User', back_populates='role')
+
+from app.audit import AuditLog  

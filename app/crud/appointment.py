@@ -39,7 +39,8 @@ async def create_appointment(db: AsyncSession, appointment: AppointmentCreate):
         follow_up_notes=appointment.follow_up_notes,
         appointment_date=appointment.appointment_date,
         appointment_time=appointment.appointment_time,
-        hospital_id=appointment.hospital_id
+        hospital_id=appointment.hospital_id,
+        status=appointment.status,
     )
     db.add(db_appointment)
     await db.commit()
@@ -89,7 +90,8 @@ async def get_listing_appointments(db: AsyncSession, skip: int = 0, limit: int =
             updated_at=appt.updated_at,
             appointment_date=appt.appointment_date,
             appointment_time=appt.appointment_time,
-            hospital_id=appt.hospital_id
+            hospital_id=appt.hospital_id,
+            status=appt.status
         ))
     
     return response
@@ -176,7 +178,6 @@ async def get_grouped_appointments(db: AsyncSession):
     next_2_days = today_end + timedelta(days=2)
     prev_2_days = today_start - timedelta(days=2)
 
-    # Convert datetime to string in the same format as the database
     prev_2_days_str = prev_2_days.strftime("%Y-%m-%d")
     next_2_days_str = next_2_days.strftime("%Y-%m-%d")
     today_start_str = today_start.strftime("%Y-%m-%d")
@@ -215,12 +216,13 @@ async def get_grouped_appointments(db: AsyncSession):
             updated_at=appt.updated_at,
             appointment_date=appt.appointment_date,
             appointment_time=appt.appointment_time,
-            hospital_id=appt.hospital_id
+            hospital_id=appt.hospital_id,
+            status=appt.status
         )
 
-        if today_start_str <= appt.appointment_date < today_end_str:
+        if today_start_str <= appt.appointment_date < today_end_str and appt.status == "pending":
             today.append(response_data)
-        elif today_end_str <= appt.appointment_date < next_2_days_str:
+        elif today_end_str <= appt.appointment_date < next_2_days_str and appt.status == "pending":
             upcoming.append(response_data)
         elif prev_2_days_str <= appt.appointment_date < today_start_str:
             past.append(response_data)
@@ -283,7 +285,8 @@ async def get_appointments_by_date_range(
                 updated_at=appt.updated_at,
                 appointment_date=appt.appointment_date,
                 appointment_time=appt.appointment_time,
-                hospital_id=appt.hospital_id
+                hospital_id=appt.hospital_id,
+                status=appt.status
             ))
 
         return response
@@ -310,7 +313,8 @@ async def get_appointments_by_hospital_id(
             .filter(
                 Appointment.hospital_id == hospital_id,
                 cast(Appointment.appointment_date, Date) >= start_datetime.date(),
-                cast(Appointment.appointment_date, Date) <= end_datetime.date()
+                cast(Appointment.appointment_date, Date) <= end_datetime.date(),
+                Appointment.status != "cancelled"
             )
         )
         appointments = appt_result.scalars().all()
@@ -338,7 +342,8 @@ async def get_appointments_by_hospital_id(
                 "doctor_id": appt.doctor_id,
                 "patient_id": appt.patient_id,
                 "appointment_datetime": f"{appt.appointment_date}T{appt.appointment_time}" if appt.appointment_date and appt.appointment_time else None,
-                "doctor": f"Dr. {appt.doctor.first_name} {appt.doctor.last_name}" if appt.doctor else "Dr. Unknown"
+                "doctor": f"Dr. {appt.doctor.first_name} {appt.doctor.last_name}" if appt.doctor else "Dr. Unknown",
+                "status": appt.status,
             })
 
         print(f"[DEBUG] Returning {len(response)} appointments in response")
@@ -347,6 +352,6 @@ async def get_appointments_by_hospital_id(
     except Exception as e:
         print(f"[ERROR] Unexpected error in get_appointments_by_hospital_id: {e}")
         return []
-        
 
-        
+
+

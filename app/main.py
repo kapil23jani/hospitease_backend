@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.database import AsyncSessionLocal, engine
 from app.models import Base
 from app.routers import role, user, hospital, patient, doctor, appointment, symtom, vital, test, appointment_medicine, appointment_document, health_info, family_history, medical_history, receipt
-
+from app.routers import stats_routes
 app = FastAPI()
 
 app.add_middleware(
@@ -41,6 +41,7 @@ app.include_router(health_info.router, prefix="/health_informations", tags=["Hea
 app.include_router(family_history.router, prefix="/family_histories", tags=["Family Histories"])
 app.include_router(medical_history.router, prefix="/medical_histories", tags=["Medical Histories"])
 app.include_router(receipt.router, prefix="/receipts", tags=["Receipts"])
+app.include_router(stats_routes.router, prefix="/api", tags=["Statistics"])
 
 @app.get("/", tags=["Health"])
 async def health_check():

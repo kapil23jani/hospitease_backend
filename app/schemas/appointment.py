@@ -25,7 +25,7 @@ class AppointmentBase(BaseModel):
     follow_up_notes: Optional[str] = None
     appointment_date: Optional[str] = None
     appointment_time: Optional[str] = None
-
+    status: Optional[str] = None
 
 # Schema for creating an appointment
 class AppointmentCreate(AppointmentBase):
@@ -51,6 +51,7 @@ class AppointmentUpdate(BaseModel):
     follow_up_notes: Optional[str] = None
     appointment_date: Optional[str] = None
     appointment_time: Optional[str] = None
+    status: Optional[str] = None
 
 
 # Schema for detailed response of an appointment
@@ -104,5 +105,6 @@ class AppointmentListingResponse(BaseModel):
     reason: Optional[str]
     appointment_date: Optional[str]
     appointment_time: Optional[str]
+    status: Optional[str]
     class Config:
         from_attributes = True  
