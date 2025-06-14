@@ -18,7 +18,7 @@ class HospitalBase(BaseModel):
     admin_id: Optional[int] = None
     owner_name: Optional[str] = None
     admin_contact_number: Optional[str] = None
-    number_of_beds: Optional[int] = None
+    number_of_beds: Optional[int] = True
     departments: Optional[List[str]] = None
     specialties: Optional[List[str]] = None
     facilities: Optional[List[str]] = None

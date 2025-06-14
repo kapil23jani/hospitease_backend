@@ -7,6 +7,7 @@ class UserBase(BaseModel):
     gender: str
     email: Optional[EmailStr] = None
     phone_number: Optional[str] = None
+    hospital_id: Optional[int] = None 
 class UserCreate(UserBase):
     password: str    
     role_id: int     

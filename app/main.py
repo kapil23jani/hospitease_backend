@@ -3,7 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.database import AsyncSessionLocal, engine
 from app.models import Base
 from app.routers import role, user, hospital, patient, doctor, appointment, symtom, vital, test, appointment_medicine, appointment_document, health_info, family_history, medical_history, receipt
-from app.routers import stats_routes
+from app.routers import stats_routes, permission, hospital_permissions, hospital_payment  # <-- add hospital_payment import
+
 app = FastAPI()
 
 app.add_middleware(
@@ -42,7 +43,9 @@ app.include_router(family_history.router, prefix="/family_histories", tags=["Fam
 app.include_router(medical_history.router, prefix="/medical_histories", tags=["Medical Histories"])
 app.include_router(receipt.router, prefix="/receipts", tags=["Receipts"])
 app.include_router(stats_routes.router, prefix="/api", tags=["Statistics"])
-
+app.include_router(permission.router, prefix="/permissions", tags=["Permissions"])  # <-- add this line
+app.include_router(hospital_permissions.router, prefix="/hospital-permissions", tags=["Hospital Permissions"])
+app.include_router(hospital_payment.router, prefix="/hospital-payments", tags=["Hospital Payments"])  # <-- add this line
 @app.get("/", tags=["Health"])
 async def health_check():
     return {"message": "Hospitease API is running 🚀"}

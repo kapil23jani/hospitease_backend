@@ -1,6 +1,6 @@
 from sqlalchemy.future import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, selectinload
 from app.models.patient import Patient
 from app.models.hospital import Hospital
 from app.schemas.patient import PatientCreate, PatientUpdate, PatientResponse
@@ -88,7 +88,12 @@ async def get_hospital_by_patient_id(db: AsyncSession, patient_id: int):
         return None
 
     result = await db.execute(
-        select(Hospital).filter(Hospital.id == patient.hospital_id)
+        select(Hospital)
+        .options(
+            selectinload(Hospital.permissions),
+            selectinload(Hospital.hospital_payments)
+        )
+        .filter(Hospital.id == patient.hospital_id)
     )
     hospital = result.scalars().first()
     return hospital

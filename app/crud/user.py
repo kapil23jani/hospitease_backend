@@ -12,6 +12,8 @@ import logging
 from sqlalchemy.exc import IntegrityError
 from fastapi import HTTPException
 from app.models.user import User
+from typing import List, Optional
+
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -31,7 +33,8 @@ async def create_user(db: AsyncSession, user: UserCreate):
             email=user.email,
             phone_number=user.phone_number,
             password=hashed_password,  # Ensure hashed_password is used
-            role_id=user.role_id
+            role_id=user.role_id,
+            hospital_id=user.hospital_id,  # Optional field
         )
         db.add(new_user)
         await db.commit()
@@ -107,3 +110,14 @@ async def change_password(db: AsyncSession, email: str, current_password: str, n
     db.commit()
     db.refresh(user)
     return {"success": True}
+
+async def get_users_by_hospital(
+    db: AsyncSession, hospital_id: int, role_id: Optional[int] = None
+) -> List[User]:
+    query = select(User).options(selectinload(User.role)).where(User.hospital_id == hospital_id)
+
+    if role_id is not None:
+        query = query.where(User.role_id == role_id)
+
+    result = await db.execute(query)
+    return result.scalars().all()

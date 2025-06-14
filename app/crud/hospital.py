@@ -49,7 +49,16 @@ async def create_hospital(db: AsyncSession, hospital: HospitalCreate):
 
 
 async def get_hospital(db: AsyncSession, hospital_id: int):
-    stmt = select(Hospital).options(selectinload(Hospital.admin)).filter(Hospital.id == hospital_id)
+    stmt = (
+        select(Hospital)
+        .options(
+            selectinload(Hospital.admin),
+            selectinload(Hospital.permissions),  # <-- Eager load permissions
+            selectinload(Hospital.hospital_payments)  # <-- Eager load payments
+
+        )
+        .filter(Hospital.id == hospital_id)
+    )
     result = await db.execute(stmt)
     hospital = result.scalars().first()
     if not hospital:
@@ -60,7 +69,11 @@ async def get_hospital(db: AsyncSession, hospital_id: int):
 async def get_hospitals(db: AsyncSession, skip: int = 0, limit: int = 100):
     stmt = (
         select(Hospital)
-        .options(selectinload(Hospital.admin))
+        .options(
+            selectinload(Hospital.admin),
+            selectinload(Hospital.permissions),
+            selectinload(Hospital.hospital_payments)
+        )
         .offset(skip)
         .limit(limit)
     )

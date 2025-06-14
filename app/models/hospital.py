@@ -39,3 +39,16 @@ class Hospital(Base):
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
     patients = relationship("Patient", back_populates="hospital", cascade="all, delete")
     doctors = relationship("Doctor", back_populates="hospital")
+    users = relationship("User", foreign_keys='User.hospital_id', back_populates="hospital")
+    admin = relationship("User", foreign_keys=[admin_id], back_populates="administered_hospital")
+    permissions = relationship(
+        "Permission",
+        secondary="hospital_permissions",
+        back_populates="hospitals"
+    )
+    hospital_payments = relationship(
+        "HospitalPayment",
+        back_populates="hospital",
+        cascade="all, delete-orphan"
+    )
+

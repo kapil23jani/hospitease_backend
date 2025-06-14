@@ -13,6 +13,9 @@ class User(Base):
     phone_number = Column(String, nullable=True)
     password = Column(String)
     role_id = Column(Integer, ForeignKey('roles.id'))
+    hospital_id = Column(Integer, ForeignKey('hospitals.id'), nullable=True)  # ✅ New column
     role = relationship('Role', back_populates='users')
-    hospital = relationship("Hospital", back_populates="admin", uselist=False)
     doctor = relationship("Doctor", back_populates="user", uselist=False)
+    hospital = relationship("Hospital", foreign_keys=[hospital_id], back_populates="users")
+
+    administered_hospital = relationship("Hospital", foreign_keys='Hospital.admin_id', back_populates="admin", uselist=False)
