@@ -4,6 +4,7 @@ from app.database import AsyncSessionLocal, engine
 from app.models import Base
 from app.routers import role, user, hospital, patient, doctor, appointment, symtom, vital, test, appointment_medicine, appointment_document, health_info, family_history, medical_history, receipt
 from app.routers import stats_routes, permission, hospital_permissions, hospital_payment  # <-- add hospital_payment import
+from app.routers import admin_dashboard  # <-- Add this import
 
 app = FastAPI()
 
@@ -50,3 +51,4 @@ app.include_router(hospital_payment.router, prefix="/hospital-payments", tags=["
 async def health_check():
     return {"message": "Hospitease API is running 🚀"}
 
+app.include_router(admin_dashboard.router)  # <-- Add this line before or after other include_router calls
