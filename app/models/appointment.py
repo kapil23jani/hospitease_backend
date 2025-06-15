@@ -28,7 +28,7 @@ class Appointment(Base):
     appointment_date = Column(Text, nullable=True)
     appointment_time = Column(Text, nullable=True)
     status = Column(Text, nullable=True)
-
+    appointment_unique_id = Column(String, unique=True, index=True, nullable=False)
 
     patient = relationship("Patient", back_populates="appointments", lazy="selectin")
     doctor = relationship("Doctor", back_populates="appointments", lazy="selectin")

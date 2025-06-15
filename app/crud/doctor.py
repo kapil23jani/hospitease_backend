@@ -11,6 +11,7 @@ from app.schemas.doctor import DoctorCreate, DoctorUpdate
 from sqlalchemy.orm import selectinload
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
 async def create_doctor(db: AsyncSession, doctor: DoctorCreate):
     try:
         hashed_password = pwd_context.hash(doctor.password)
@@ -64,8 +65,14 @@ async def create_doctor(db: AsyncSession, doctor: DoctorCreate):
 
         db.add(new_doctor)
         await db.commit()
+        # Eagerly load hospital after creation
         await db.refresh(new_doctor)
-
+        result = await db.execute(
+            select(Doctor)
+            .where(Doctor.id == new_doctor.id)
+            .options(selectinload(Doctor.hospital))
+        )
+        new_doctor = result.scalar_one_or_none()
         return new_doctor
 
     except IntegrityError as e:
@@ -73,17 +80,30 @@ async def create_doctor(db: AsyncSession, doctor: DoctorCreate):
         raise HTTPException(status_code=400, detail=f"Integrity Error: {str(e)}")
 
 async def get_doctors(db: AsyncSession, skip: int = 0, limit: int = 100):
-    result = await db.execute(select(Doctor).offset(skip).limit(limit).options(selectinload(Doctor.hospital)))  # Assuming selectinload
+    result = await db.execute(
+        select(Doctor)
+        .offset(skip)
+        .limit(limit)
+        .options(selectinload(Doctor.hospital))  # Eager load hospital
+    )
     doctors = result.scalars().all()
     return doctors
 
 async def get_doctor_by_id(db: AsyncSession, doctor_id: int):
-    result = await db.execute(select(Doctor).where(Doctor.id == doctor_id).options(selectinload(Doctor.hospital)))  # Assuming selectinload
+    result = await db.execute(
+        select(Doctor)
+        .where(Doctor.id == doctor_id)
+        .options(selectinload(Doctor.hospital))  # Eager load hospital
+    )
     doctor = result.scalar_one_or_none()
     return doctor
 
 async def update_doctor(db: AsyncSession, doctor_id: int, doctor: DoctorUpdate):
-    result = await db.execute(select(Doctor).where(Doctor.id == doctor_id))
+    result = await db.execute(
+        select(Doctor)
+        .where(Doctor.id == doctor_id)
+        .options(selectinload(Doctor.hospital))  # Eager load hospital
+    )
     db_doctor = result.scalar_one_or_none()
 
     if not db_doctor:
@@ -97,7 +117,11 @@ async def update_doctor(db: AsyncSession, doctor_id: int, doctor: DoctorUpdate):
     return db_doctor
 
 async def delete_doctor(db: AsyncSession, doctor_id: int):
-    result = await db.execute(select(Doctor).where(Doctor.id == doctor_id))
+    result = await db.execute(
+        select(Doctor)
+        .where(Doctor.id == doctor_id)
+        .options(selectinload(Doctor.hospital))  # Eager load hospital
+    )
     db_doctor = result.scalar_one_or_none()
 
     if db_doctor:
@@ -110,7 +134,7 @@ async def get_doctors_by_hospital(db: AsyncSession, hospital_id: int):
     result = await db.execute(
         select(Doctor)
         .where(Doctor.hospital_id == hospital_id)
-        .options(selectinload(Doctor.hospital))
+        .options(selectinload(Doctor.hospital))  # Eager load hospital
     )
     doctors = result.scalars().all()
     return doctors

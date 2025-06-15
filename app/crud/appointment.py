@@ -18,8 +18,21 @@ from sqlalchemy.orm import joinedload
 from app.schemas.appointment import AppointmentListingResponse, DoctorResponse, PatientResponse
 from app.models.appointment import Appointment
 from sqlalchemy import cast, Date
+from sqlalchemy import text
 
 async def create_appointment(db: AsyncSession, appointment: AppointmentCreate):
+    today_str = datetime.utcnow().strftime("%Y%m%d")
+    result = await db.execute(
+        text("SELECT appointment_unique_id FROM appointments WHERE appointment_unique_id LIKE :prefix ORDER BY id DESC LIMIT 1"),
+        {"prefix": f"APT-{today_str}-%"}
+    )
+    last_id = result.scalar()
+    if last_id:
+        last_seq = int(last_id.split("-")[-1])
+        next_seq = last_seq + 1
+    else:
+        next_seq = 1
+    appointment_unique_id = f"APT-{today_str}-{str(next_seq).zfill(3)}"
 
     db_appointment = Appointment(
         patient_id=appointment.patient_id,
@@ -41,6 +54,7 @@ async def create_appointment(db: AsyncSession, appointment: AppointmentCreate):
         appointment_time=appointment.appointment_time,
         hospital_id=appointment.hospital_id,
         status=appointment.status,
+        appointment_unique_id=appointment_unique_id
     )
     db.add(db_appointment)
     await db.commit()
@@ -91,7 +105,8 @@ async def get_listing_appointments(db: AsyncSession, skip: int = 0, limit: int =
             appointment_date=appt.appointment_date,
             appointment_time=appt.appointment_time,
             hospital_id=appt.hospital_id,
-            status=appt.status
+            status=appt.status,
+            appointment_unique_id=appt.appointment_unique_id
         ))
     
     return response
@@ -171,7 +186,6 @@ async def get_doctor_by_appointment_id(db: AsyncSession, appointment_id: int):
     return appointment.doctor if appointment else None
 
 async def get_grouped_appointments(db: AsyncSession):
-    # Current time and date
     now = datetime.utcnow()
     today_start = datetime(now.year, now.month, now.day)
     today_end = today_start + timedelta(days=1)
@@ -217,7 +231,8 @@ async def get_grouped_appointments(db: AsyncSession):
             appointment_date=appt.appointment_date,
             appointment_time=appt.appointment_time,
             hospital_id=appt.hospital_id,
-            status=appt.status
+            status=appt.status,
+            appointment_unique_id=appt.appointment_unique_id
         )
 
         if today_start_str <= appt.appointment_date < today_end_str and appt.status == "pending":

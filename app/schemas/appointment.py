@@ -12,7 +12,7 @@ class AppointmentBase(BaseModel):
     problem: Optional[str] = None
     appointment_type: Optional[str] = None
     reason: Optional[str] = None
-
+    appointment_unique_id: Optional[str] = None
     # Optional fields for other appointment details
     blood_pressure: Optional[str] = None
     pulse_rate: Optional[str] = None
@@ -26,6 +26,7 @@ class AppointmentBase(BaseModel):
     appointment_date: Optional[str] = None
     appointment_time: Optional[str] = None
     status: Optional[str] = None
+
 
 # Schema for creating an appointment
 class AppointmentCreate(AppointmentBase):
@@ -59,7 +60,7 @@ class AppointmentResponse(AppointmentBase):
     id: int
 
     class Config:
-        from_attributes = True  # Ensures correct datetime handling
+        from_attributes = True
 
 
 # Schema for Doctor response
@@ -98,6 +99,7 @@ class PatientResponse(BaseModel):
 
 class AppointmentListingResponse(BaseModel):
     id: int
+    appointment_unique_id: str  # <-- Add this line
     patient: PatientResponse
     doctor: DoctorResponse
     problem: Optional[str]
@@ -107,4 +109,4 @@ class AppointmentListingResponse(BaseModel):
     appointment_time: Optional[str]
     status: Optional[str]
     class Config:
-        from_attributes = True  
+        from_attributes = True
