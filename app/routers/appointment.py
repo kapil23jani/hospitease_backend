@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 from pydantic import BaseModel
+from fastapi import APIRouter, Depends, Query
 
 from app.crud.appointment import (
     get_appointments_by_date_range, create_appointment, get_appointments, get_appointment_by_id, get_appointments_by_hospital_id,
@@ -24,9 +25,28 @@ async def list_appointments(skip: int = 0, limit: int = 100, db: AsyncSession = 
     return await get_appointments(db, skip, limit)
 
 @router.get("/listing", response_model=List[AppointmentListingResponse])
-async def list_appointments(skip: int = 0, limit: int = 100, db: AsyncSession = Depends(get_db)):
-    return await get_listing_appointments(db, skip, limit)
-
+async def listing_appointments(
+    skip: int = Query(0),
+    limit: int = Query(100),
+    dateRange: str = Query(None),
+    doctorId: str = Query(None),
+    status: str = Query(None),
+    search: str = Query(None),
+    appointmentType: str = Query(None),
+    problem: str = Query(None),
+    db: AsyncSession = Depends(get_db)
+):
+    return await get_listing_appointments(
+        db=db,
+        skip=skip,
+        limit=limit,
+        dateRange=dateRange,
+        doctorId=doctorId,
+        status=status,
+        search=search,
+        appointmentType=appointmentType,
+        problem=problem
+    )
 @router.get("/{appointment_id}", response_model=AppointmentResponse)
 async def get_appointment(appointment_id: int, db: AsyncSession = Depends(get_db)):
     appointment = await get_appointment_by_id(db, appointment_id)

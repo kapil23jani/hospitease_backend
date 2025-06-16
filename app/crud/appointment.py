@@ -19,6 +19,8 @@ from app.schemas.appointment import AppointmentListingResponse, DoctorResponse, 
 from app.models.appointment import Appointment
 from sqlalchemy import cast, Date
 from sqlalchemy import text
+from sqlalchemy import and_, or_, select
+import logging
 
 async def create_appointment(db: AsyncSession, appointment: AppointmentCreate):
     today_str = datetime.utcnow().strftime("%Y%m%d")
@@ -71,20 +73,60 @@ async def get_appointments(db: AsyncSession, skip: int = 0, limit: int = 100):
     )
     return result.scalars().all()
 
-async def get_listing_appointments(db: AsyncSession, skip: int = 0, limit: int = 100) -> List[AppointmentListingResponse]:
-    result = await db.execute(
+async def get_listing_appointments(
+    db: AsyncSession,
+    skip: int = 0,
+    limit: int = 100,
+    dateRange: str = None,
+    doctorId: str = None,
+    status: str = None,
+    search: str = None,
+    appointmentType: str = None,
+    problem: str = None
+) -> List[AppointmentListingResponse]:
+    logging.info(f"[get_listing_appointments] Params from frontend: skip={skip}, limit={limit}, dateRange={dateRange}, doctorId={doctorId}, status={status}, search={search}, appointmentType={appointmentType}, problem={problem}")
+
+    filters = []
+
+    if dateRange:
+        filters.append(Appointment.appointment_date == dateRange)
+    if doctorId:
+        filters.append(Appointment.doctor_id == int(doctorId))
+    if status:
+        filters.append(Appointment.status == status)
+    if appointmentType:
+        filters.append(Appointment.appointment_type == appointmentType)
+    if problem:
+        filters.append(Appointment.problem.ilike(f"%{problem}%"))
+    if search:
+        filters.append(
+            or_(
+                Patient.first_name.ilike(f"%{search}%"),
+                Patient.last_name.ilike(f"%{search}%"),
+                Patient.patient_unique_id.ilike(f"%{search}%"),
+                Doctor.first_name.ilike(f"%{search}%"),
+                Doctor.last_name.ilike(f"%{search}%"),
+            )
+        )
+
+    # Always join Patient and Doctor for flexible search/filtering
+    query = (
         select(Appointment)
+        .join(Patient, Appointment.patient_id == Patient.id)
+        .join(Doctor, Appointment.doctor_id == Doctor.id)
         .options(joinedload(Appointment.patient), joinedload(Appointment.doctor))
+        .filter(and_(*filters))
         .offset(skip)
         .limit(limit)
     )
+
+    result = await db.execute(query)
     appointments = result.scalars().all()
 
     response = []
     for appt in appointments:
         doctor = DoctorResponse.from_orm(appt.doctor)
         patient = PatientResponse.from_orm(appt.patient)
-
         response.append(AppointmentListingResponse(
             id=appt.id,
             patient=patient,
@@ -108,7 +150,6 @@ async def get_listing_appointments(db: AsyncSession, skip: int = 0, limit: int =
             status=appt.status,
             appointment_unique_id=appt.appointment_unique_id
         ))
-    
     return response
 
 async def get_appointment_by_id(db: AsyncSession, appointment_id: int):
