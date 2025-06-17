@@ -5,7 +5,7 @@ from app.database import get_db
 from app.crud.user import create_user, get_user, get_users, update_user, delete_user, change_password, get_users_by_hospital
 from fastapi.security import OAuth2PasswordRequestForm
 from app.database import get_db
-from app.schemas.user import UserCreate, TokenResponse, UserResponse, ChangePasswordRequest
+from app.schemas.user import UserCreate, TokenResponse, UserResponse, ChangePasswordRequest, PasswordUpdateRequest
 from app.crud.user import create_user, authenticate_user
 from app.utils import create_access_token
 from datetime import timedelta
@@ -85,3 +85,19 @@ async def change_password(db: AsyncSession, email: str, current_password: str, n
     user.hashed_password = pwd_context.hash(new_password)
     await db.commit()
     return {"message": "Password updated successfully"}
+
+@router.post("/change-password")
+async def change_password(
+    payload: PasswordUpdateRequest,
+    db: AsyncSession = Depends(get_db)
+):
+    result = await db.execute(select(User).where(User.id == payload.user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if user.password != payload.old_password:
+        raise HTTPException(status_code=400, detail="Old password is incorrect")
+    user.password = payload.new_password
+    await db.commit()
+    await db.refresh(user)
+    return {"success": True, "message": "Password updated successfully"}

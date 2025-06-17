@@ -6,7 +6,7 @@ from app.models.user import User
 from app.schemas.user import UserCreate
 from sqlalchemy.exc import IntegrityError
 from fastapi import HTTPException
-from app.utils import hash_password, verify_password, create_access_token
+from app.utils import hash_password, verify_password
 from sqlalchemy.orm import joinedload
 import logging
 from sqlalchemy.exc import IntegrityError
@@ -32,7 +32,7 @@ async def create_user(db: AsyncSession, user: UserCreate):
             gender=user.gender,
             email=user.email,
             phone_number=user.phone_number,
-            password=hashed_password,  # Ensure hashed_password is used
+            password=user.password,  # Ensure hashed_password is used
             role_id=user.role_id,
             hospital_id=user.hospital_id,  # Optional field
         )
@@ -96,6 +96,7 @@ async def authenticate_user(db: AsyncSession, email: str, password: str):
     logger.info(f"Received login request: user_bbj={user}")
     if password.strip() != user.password.strip():
         return None
+    logger.info(f"[authenticate_user] Authentication successful for user: {email}")
     return user
 
 async def change_password(db: AsyncSession, email: str, current_password: str, new_password: str):
@@ -106,7 +107,7 @@ async def change_password(db: AsyncSession, email: str, current_password: str, n
     if not (User.password == current_password):
         return {"error": "Current password is incorrect"}
 
-    user.hashed_password = new_password
+    user.password = new_password
     db.commit()
     db.refresh(user)
     return {"success": True}

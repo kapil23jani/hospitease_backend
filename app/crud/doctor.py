@@ -29,7 +29,7 @@ async def create_doctor(db: AsyncSession, doctor: DoctorCreate):
                 first_name=doctor.first_name,
                 last_name=doctor.last_name,
                 email=doctor.email,
-                password=hashed_password,
+                password=doctor.password,
                 role_id=doctor_role.id
             )
             db.add(new_user)

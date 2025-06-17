@@ -11,6 +11,7 @@ class Hospital(Base):
     name = Column(String(255), nullable=False)
     registration_number = Column(String(100), nullable=True)
     type = Column(String(100), nullable=True)
+    address = Column(String, nullable=True)
     logo_url = Column(Text, nullable=True)
     website = Column(String(255), nullable=True)
     admin_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), unique=True, nullable=True)

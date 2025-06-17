@@ -1,8 +1,8 @@
 from pydantic import BaseModel, EmailStr
 from typing import Optional, List, Dict
 import datetime
-from app.schemas.permission import PermissionResponse  # already imported
-from app.schemas.hospital_payment import HospitalPaymentResponse  # <-- Add this import
+from app.schemas.permission import PermissionResponse
+from app.schemas.hospital_payment import HospitalPaymentResponse
 
 class HospitalBase(BaseModel):
     name: Optional[str] = None
@@ -20,7 +20,7 @@ class HospitalBase(BaseModel):
     admin_id: Optional[int] = None  
     owner_name: Optional[str] = None
     admin_contact_number: Optional[str] = None
-    number_of_beds: Optional[int] = True
+    number_of_beds: Optional[int] = None
     departments: Optional[List[str]] = None
     specialties: Optional[List[str]] = None
     facilities: Optional[List[str]] = None
@@ -43,8 +43,9 @@ class HospitalResponse(HospitalBase):
     id: int
     created_at: Optional[datetime.datetime] = None
     updated_at: Optional[datetime.datetime] = None
-    permissions: Optional[list[PermissionResponse]] = None
-    hospital_payments: Optional[list[HospitalPaymentResponse]] = None  # <-- Add this line
+    permissions: List[PermissionResponse] = []
+    hospital_payments: List[HospitalPaymentResponse] = []
 
     class Config:
+        orm_mode = True
         from_attributes = True

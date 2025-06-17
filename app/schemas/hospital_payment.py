@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from datetime import date
 
 class HospitalPaymentBase(BaseModel):
@@ -17,11 +17,18 @@ class HospitalPaymentCreate(HospitalPaymentBase):
 class HospitalPaymentUpdate(HospitalPaymentBase):
     pass
 
-class HospitalPaymentResponse(HospitalPaymentBase):
+class HospitalPaymentResponse(BaseModel):
     id: int
+    hospital_id: int
+    date: date
+    amount: float
+    payment_method: str
+    reference: str | None = None
+    status: str
+    paid: bool = False
+    remarks: str | None = None
 
-    class Config:
-        orm_mode = True
+    model_config = ConfigDict(from_attributes=True)
 
 class HospitalShortInfo(BaseModel):
     id: int

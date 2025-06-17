@@ -7,7 +7,9 @@ from fastapi import HTTPException
 from app.models.hospital import Hospital
 from app.models.user import User
 from app.schemas.hospital import HospitalCreate, HospitalUpdate
-
+from app.schemas.hospital import HospitalResponse  
+from app.schemas.permission import PermissionResponse
+from app.schemas.hospital_payment import HospitalPaymentResponse
 
 async def create_hospital(db: AsyncSession, hospital: HospitalCreate):
     try:
@@ -38,11 +40,28 @@ async def create_hospital(db: AsyncSession, hospital: HospitalCreate):
             external_id=hospital.external_id,
             timezone=hospital.timezone,
             is_active=hospital.is_active,
+            address=hospital.address,
+            city=hospital.city,
+            state=hospital.state,
+            country=hospital.country,
+            zipcode=hospital.zipcode,
+            phone_number=hospital.phone_number,
         )
         db.add(new_hospital)
         await db.commit()
         await db.refresh(new_hospital)
-        return new_hospital
+        stmt = (
+            select(Hospital)
+            .options(
+                selectinload(Hospital.admin),
+                selectinload(Hospital.permissions),
+                selectinload(Hospital.hospital_payments)
+            )
+            .filter(Hospital.id == new_hospital.id)
+        )
+        result = await db.execute(stmt)
+        hospital_with_rel = result.scalars().first()
+        return HospitalResponse.from_orm(hospital_with_rel)
     except IntegrityError as e:
         await db.rollback()
         raise HTTPException(status_code=400, detail=f"Integrity Error: {str(e)}")
@@ -53,9 +72,8 @@ async def get_hospital(db: AsyncSession, hospital_id: int):
         select(Hospital)
         .options(
             selectinload(Hospital.admin),
-            selectinload(Hospital.permissions),  # <-- Eager load permissions
-            selectinload(Hospital.hospital_payments)  # <-- Eager load payments
-
+            selectinload(Hospital.permissions),
+            selectinload(Hospital.hospital_payments)
         )
         .filter(Hospital.id == hospital_id)
     )
@@ -63,7 +81,16 @@ async def get_hospital(db: AsyncSession, hospital_id: int):
     hospital = result.scalars().first()
     if not hospital:
         raise HTTPException(status_code=404, detail="Hospital not found")
-    return hospital
+
+    # Manually convert nested relationships
+    permissions = [PermissionResponse.model_validate(p) for p in getattr(hospital, "permissions", [])]
+    hospital_payments = [HospitalPaymentResponse.model_validate(hp) for hp in getattr(hospital, "hospital_payments", [])]
+
+    hospital_dict = hospital.__dict__.copy()
+    hospital_dict["permissions"] = permissions
+    hospital_dict["hospital_payments"] = hospital_payments
+
+    return HospitalResponse.model_validate(hospital_dict)
 
 
 async def get_hospitals(db: AsyncSession, skip: int = 0, limit: int = 100):
@@ -78,7 +105,17 @@ async def get_hospitals(db: AsyncSession, skip: int = 0, limit: int = 100):
         .limit(limit)
     )
     result = await db.execute(stmt)
-    return result.scalars().all()
+    hospitals = result.scalars().all()
+
+    hospital_responses = []
+    for h in hospitals:
+        permissions = [PermissionResponse.model_validate(p) for p in h.permissions]
+        hospital_payments = [HospitalPaymentResponse.model_validate(hp) for hp in getattr(h, "hospital_payments", [])]
+        hospital_dict = h.__dict__.copy()
+        hospital_dict["permissions"] = permissions
+        hospital_dict["hospital_payments"] = hospital_payments
+        hospital_responses.append(HospitalResponse.model_validate(hospital_dict))
+    return hospital_responses
 
 
 async def update_hospital(db: AsyncSession, hospital_id: int, hospital_update: HospitalUpdate):
@@ -88,7 +125,20 @@ async def update_hospital(db: AsyncSession, hospital_id: int, hospital_update: H
             setattr(db_hospital, key, value)
         await db.commit()
         await db.refresh(db_hospital)
-    return db_hospital
+        # Eagerly load relationships for response
+        stmt = (
+            select(Hospital)
+            .options(
+                selectinload(Hospital.admin),
+                selectinload(Hospital.permissions),
+                selectinload(Hospital.hospital_payments)
+            )
+            .filter(Hospital.id == db_hospital.id)
+        )
+        result = await db.execute(stmt)
+        hospital_with_rel = result.scalars().first()
+        return HospitalResponse.from_orm(hospital_with_rel)
+    return None
 
 
 async def delete_hospital(db: AsyncSession, hospital_id: int):
