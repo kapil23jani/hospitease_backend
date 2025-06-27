@@ -5,7 +5,18 @@ from app.models import Base
 from app.routers import role, user, hospital, patient, doctor, appointment, symtom, vital, test, appointment_medicine, appointment_document, health_info, family_history, medical_history, receipt
 from app.routers import stats_routes, permission, hospital_permissions, hospital_payment  # <-- add hospital_payment import
 from app.routers import admin_dashboard  # <-- Add this import
-
+from app.routers import staff  # <-- Add this import
+from app.routers import bed_type
+from app.routers import ward
+from app.routers.support_chat import router as support_chat_router
+from app.routers.smart_report import router as smart_report_router  # <-- Add this import
+from app.routers import bed
+from app.routers import admission
+from app.routers import admission_vital  # <-- add this import
+from app.routers import admission_medicine
+from app.routers import nursing_note  # <-- add this import
+from app.routers import admission_test  # <-- add this import
+from app.routers import admission_diet
 app = FastAPI()
 
 app.add_middleware(
@@ -47,8 +58,20 @@ app.include_router(stats_routes.router, prefix="/api", tags=["Statistics"])
 app.include_router(permission.router, prefix="/permissions", tags=["Permissions"])  # <-- add this line
 app.include_router(hospital_permissions.router, prefix="/hospital-permissions", tags=["Hospital Permissions"])
 app.include_router(hospital_payment.router, prefix="/hospital-payments", tags=["Hospital Payments"])  # <-- add this line
+app.include_router(bed_type.router)
+app.include_router(bed.router)
+app.include_router(admin_dashboard.router)  
+app.include_router(support_chat_router)
+app.include_router(smart_report_router)
+app.include_router(staff.router)
+app.include_router(ward.router)
+app.include_router(admission.router)
+app.include_router(admission_vital.router)  # <-- add this line
+app.include_router(admission_medicine.router)  # <-- add this line
+app.include_router(nursing_note.router)  # <-- add this line
+app.include_router(admission_test.router)  # <-- add this line
+app.include_router(admission_diet.router)  # <-- add this line
+
 @app.get("/", tags=["Health"])
 async def health_check():
     return {"message": "Hospitease API is running 🚀"}
-
-app.include_router(admin_dashboard.router)  # <-- Add this line before or after other include_router calls

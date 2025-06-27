@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 
 
 # Base schema for Appointment (this will be inherited)
@@ -110,3 +110,16 @@ class AppointmentListingResponse(BaseModel):
     status: Optional[str]
     class Config:
         from_attributes = True
+
+
+class Medicine(BaseModel):
+    name: str
+    dose: str
+    frequency: str
+    duration: str
+
+
+class PrescriptionResponse(BaseModel):
+    complaint: str
+    diagnosis: str
+    medicines: List[Medicine]

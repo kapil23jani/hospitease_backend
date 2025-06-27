@@ -61,7 +61,15 @@ async def create_hospital(db: AsyncSession, hospital: HospitalCreate):
         )
         result = await db.execute(stmt)
         hospital_with_rel = result.scalars().first()
-        return HospitalResponse.from_orm(hospital_with_rel)
+
+        # Manually convert nested relationships
+        permissions = [PermissionResponse.model_validate(p) for p in getattr(hospital_with_rel, "permissions", [])]
+        hospital_payments = [HospitalPaymentResponse.model_validate(hp) for hp in getattr(hospital_with_rel, "hospital_payments", [])]
+        hospital_dict = hospital_with_rel.__dict__.copy()
+        hospital_dict["permissions"] = permissions
+        hospital_dict["hospital_payments"] = hospital_payments
+
+        return HospitalResponse.model_validate(hospital_dict)
     except IntegrityError as e:
         await db.rollback()
         raise HTTPException(status_code=400, detail=f"Integrity Error: {str(e)}")
@@ -82,10 +90,8 @@ async def get_hospital(db: AsyncSession, hospital_id: int):
     if not hospital:
         raise HTTPException(status_code=404, detail="Hospital not found")
 
-    # Manually convert nested relationships
     permissions = [PermissionResponse.model_validate(p) for p in getattr(hospital, "permissions", [])]
     hospital_payments = [HospitalPaymentResponse.model_validate(hp) for hp in getattr(hospital, "hospital_payments", [])]
-
     hospital_dict = hospital.__dict__.copy()
     hospital_dict["permissions"] = permissions
     hospital_dict["hospital_payments"] = hospital_payments
@@ -109,7 +115,7 @@ async def get_hospitals(db: AsyncSession, skip: int = 0, limit: int = 100):
 
     hospital_responses = []
     for h in hospitals:
-        permissions = [PermissionResponse.model_validate(p) for p in h.permissions]
+        permissions = [PermissionResponse.model_validate(p) for p in getattr(h, "permissions", [])]
         hospital_payments = [HospitalPaymentResponse.model_validate(hp) for hp in getattr(h, "hospital_payments", [])]
         hospital_dict = h.__dict__.copy()
         hospital_dict["permissions"] = permissions
@@ -119,30 +125,41 @@ async def get_hospitals(db: AsyncSession, skip: int = 0, limit: int = 100):
 
 
 async def update_hospital(db: AsyncSession, hospital_id: int, hospital_update: HospitalUpdate):
-    db_hospital = await get_hospital(db, hospital_id)
-    if db_hospital:
-        for key, value in hospital_update.dict(exclude_unset=True).items():
-            setattr(db_hospital, key, value)
-        await db.commit()
-        await db.refresh(db_hospital)
-        # Eagerly load relationships for response
-        stmt = (
-            select(Hospital)
-            .options(
-                selectinload(Hospital.admin),
-                selectinload(Hospital.permissions),
-                selectinload(Hospital.hospital_payments)
-            )
-            .filter(Hospital.id == db_hospital.id)
+    stmt = select(Hospital).filter(Hospital.id == hospital_id)
+    result = await db.execute(stmt)
+    db_hospital = result.scalars().first()
+    if not db_hospital:
+        raise HTTPException(status_code=404, detail="Hospital not found")
+
+    for key, value in hospital_update.dict(exclude_unset=True).items():
+        setattr(db_hospital, key, value)
+    await db.commit()
+    await db.refresh(db_hospital)
+    stmt = (
+        select(Hospital)
+        .options(
+            selectinload(Hospital.admin),
+            selectinload(Hospital.permissions),
+            selectinload(Hospital.hospital_payments)
         )
-        result = await db.execute(stmt)
-        hospital_with_rel = result.scalars().first()
-        return HospitalResponse.from_orm(hospital_with_rel)
-    return None
+        .filter(Hospital.id == db_hospital.id)
+    )
+    result = await db.execute(stmt)
+    hospital_with_rel = result.scalars().first()
+
+    permissions = [PermissionResponse.model_validate(p) for p in getattr(hospital_with_rel, "permissions", [])]
+    hospital_payments = [HospitalPaymentResponse.model_validate(hp) for hp in getattr(hospital_with_rel, "hospital_payments", [])]
+    hospital_dict = hospital_with_rel.__dict__.copy()
+    hospital_dict["permissions"] = permissions
+    hospital_dict["hospital_payments"] = hospital_payments
+
+    return HospitalResponse.model_validate(hospital_dict)
 
 
 async def delete_hospital(db: AsyncSession, hospital_id: int):
-    db_hospital = await get_hospital(db, hospital_id)
+    stmt = select(Hospital).filter(Hospital.id == hospital_id)
+    result = await db.execute(stmt)
+    db_hospital = result.scalars().first()
     if db_hospital:
         await db.delete(db_hospital)
         await db.commit()

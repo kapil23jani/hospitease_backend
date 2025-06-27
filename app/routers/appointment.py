@@ -1,8 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 from pydantic import BaseModel
 from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Depends
+
 
 from app.crud.appointment import (
     get_appointments_by_date_range, create_appointment, get_appointments, get_appointment_by_id, get_appointments_by_hospital_id,
@@ -12,6 +15,7 @@ from app.crud.appointment import (
 from app.schemas.appointment import AppointmentCreate, AppointmentUpdate, AppointmentResponse, AppointmentListingResponse
 from app.schemas.patient import PatientResponse
 from app.schemas.doctor import DoctorResponse
+from app.crud.appointment import transcribe_and_parse_prescription
 from typing import List
 
 router = APIRouter()
@@ -121,3 +125,16 @@ async def list_appointments_by_hospital(hospital_id: int, start_date: str, end_d
     if not appointments:
         raise HTTPException(status_code=404, detail="No appointments found for this hospital.")
     return appointments
+
+@router.post("/{appointment_id}/ai_prescription")
+async def ai_prescription(
+    appointment_id: int,
+    audio: UploadFile = File(...),
+    language: str = Form("en"),
+    db: AsyncSession = Depends(get_db)
+):
+    try:
+        result = await transcribe_and_parse_prescription(db, appointment_id, audio)
+        return JSONResponse(result)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

@@ -53,3 +53,5 @@ class Hospital(Base):
         cascade="all, delete-orphan"
     )
 
+    staff_members = relationship("Staff", back_populates="hospital")
+    wards = relationship("Ward", back_populates="hospital")

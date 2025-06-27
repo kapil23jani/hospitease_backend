@@ -21,6 +21,11 @@ from sqlalchemy import cast, Date
 from sqlalchemy import text
 from sqlalchemy import and_, or_, select
 import logging
+import openai
+import os
+from fastapi import UploadFile
+
+client = openai.OpenAI(api_key="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")
 
 async def create_appointment(db: AsyncSession, appointment: AppointmentCreate):
     today_str = datetime.utcnow().strftime("%Y%m%d")
@@ -408,6 +413,64 @@ async def get_appointments_by_hospital_id(
     except Exception as e:
         print(f"[ERROR] Unexpected error in get_appointments_by_hospital_id: {e}")
         return []
+
+async def transcribe_and_parse_prescription(
+    db: AsyncSession, appointment_id: int, audio: UploadFile, language: str = "en"
+):
+    temp_path = f"temp_{appointment_id}.mp3"
+    with open(temp_path, "wb") as f:
+        f.write(await audio.read())
+
+    # Transcribe with Whisper (new API)
+    with open(temp_path, "rb") as f:
+        note = client.audio.transcriptions.create(
+            model="whisper-1",
+            file=f,
+            response_format="text"
+        )
+    os.remove(temp_path)
+
+    prompt = f"""You are a medical assistant. Convert the doctor's note into JSON.
+Note: {note}
+Respond in this language: {language}
+JSON format:
+{{
+  "complaint": "...",
+  "diagnosis": "...",
+  "medicines": [
+    {{
+      "name": "...",
+      "dosage": "...",
+      "frequency": "...",
+      "duration": "...",
+      "start_date": "...",
+      "status": "...",
+      "time_interval": "...",
+      "route": "...",
+      "quantity": "...",
+      "instruction": "..."
+    }}
+  ],
+  "tests": [
+    {{
+      "name": "...",
+      "instruction": "..."
+    }}
+  ]
+}}
+"""
+
+    chat = client.chat.completions.create(
+        model="gpt-4",
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.3
+    )
+
+    output = chat.choices[0].message.content
+    try:
+        return eval(output)
+    except Exception:
+        return {"raw": output}
 
 
 

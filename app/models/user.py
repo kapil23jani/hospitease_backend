@@ -19,3 +19,5 @@ class User(Base):
     hospital = relationship("Hospital", foreign_keys=[hospital_id], back_populates="users")
 
     administered_hospital = relationship("Hospital", foreign_keys='Hospital.admin_id', back_populates="admin", uselist=False)
+
+    staff = relationship("Staff", back_populates="user")
