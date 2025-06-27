@@ -7,6 +7,7 @@ import pandas as pd
 import openai
 import os
 from datetime import date
+from dotenv import load_dotenv
 
 router = APIRouter()
 
@@ -23,7 +24,8 @@ with open(SCHEMA_FILE_PATH, "r") as f:
     SCHEMA_CONTENT = f.read()
 
 # OpenAI setup
-client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY") or "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")
+load_dotenv()
+client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 class PromptRequest(BaseModel):
     prompt: str
@@ -31,7 +33,6 @@ class PromptRequest(BaseModel):
 @router.post("/api/smart-report")
 async def smart_report(request: PromptRequest):
     try:
-        client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY") or "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")
         gpt_response = client.chat.completions.create(
             model="gpt-4",
             messages=[
