@@ -61,7 +61,8 @@ async def create_appointment(db: AsyncSession, appointment: AppointmentCreate):
         appointment_time=appointment.appointment_time,
         hospital_id=appointment.hospital_id,
         status=appointment.status,
-        appointment_unique_id=appointment_unique_id
+        appointment_unique_id=appointment_unique_id,
+        mode_of_appointment=appointment.mode_of_appointment
     )
     db.add(db_appointment)
     await db.commit()
@@ -231,7 +232,7 @@ async def get_doctor_by_appointment_id(db: AsyncSession, appointment_id: int):
     appointment = result.scalars().first()
     return appointment.doctor if appointment else None
 
-async def get_grouped_appointments(db: AsyncSession):
+async def get_grouped_appointments(db: AsyncSession, doctor_id: int = None, patient_id: int = None):
     now = datetime.utcnow()
     today_start = datetime(now.year, now.month, now.day)
     today_end = today_start + timedelta(days=1)
@@ -243,14 +244,22 @@ async def get_grouped_appointments(db: AsyncSession):
     today_start_str = today_start.strftime("%Y-%m-%d")
     today_end_str = today_end.strftime("%Y-%m-%d")
 
+    filters = [
+        Appointment.appointment_date >= prev_2_days_str,
+        Appointment.appointment_date < next_2_days_str,
+    ]
+    if doctor_id is not None:
+        filters.append(Appointment.doctor_id == doctor_id)
+    if patient_id is not None:
+        filters.append(Appointment.patient_id == patient_id)
+
     result = await db.execute(
         select(Appointment)
         .options(
             selectinload(Appointment.patient),
             selectinload(Appointment.doctor)
         )
-        .filter(Appointment.appointment_date >= prev_2_days_str)
-        .filter(Appointment.appointment_date < next_2_days_str)
+        .filter(*filters)
     )
     appointments = result.scalars().all()
 

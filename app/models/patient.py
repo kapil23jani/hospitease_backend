@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, ForeignKey
+from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, BigInteger
 from sqlalchemy.orm import relationship
 from app.database import Base
 
@@ -24,8 +24,8 @@ class Patient(Base):
     is_dialysis_patient = Column(Boolean, default=False)
     zipcode = Column(String, nullable=True)
     marital_status = Column(String, nullable=True)
-    patient_unique_id = Column(String, unique=True, index=True, nullable=False)  # ✅ Unique Identifier
-
+    patient_unique_id = Column(String, unique=True, index=True, nullable=False)
+    mrd_number = Column(BigInteger, unique=True, nullable=False, index=True)    
     hospital_id = Column(Integer, ForeignKey("hospitals.id"), nullable=False)
     hospital = relationship("Hospital", back_populates="patients")
     appointments = relationship("Appointment", back_populates="patient", cascade="all, delete")

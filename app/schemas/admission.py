@@ -7,11 +7,13 @@ from app.schemas.admission_medicine import AdmissionMedicineOut
 from app.schemas.nursing_note import NursingNoteOut
 from app.schemas.admission_test import AdmissionTestOut
 from app.schemas.admission_diet import AdmissionDietOut
+from app.schemas.admission_discharge import AdmissionDischargeOut
 
 class AdmissionBase(BaseModel):
     patient_id: int
     appointment_id: Optional[int] = None
     doctor_id: int
+    hospital_id: int  # <-- add this line
     admission_date: date
     reason: Optional[str] = None
     status: Optional[str] = "admitted"
@@ -32,6 +34,7 @@ class AdmissionOut(BaseModel):
     patient_id: int
     appointment_id: Optional[int]
     doctor_id: int
+    hospital_id: int  # <-- add this line
     admission_date: date
     reason: Optional[str]
     status: Optional[str]
@@ -48,6 +51,7 @@ class AdmissionOut(BaseModel):
     nursing_notes: List[NursingNoteOut] = []
     tests: List[AdmissionTestOut] = []
     diets: List[AdmissionDietOut] = []
+    discharge: Optional[AdmissionDischargeOut] = None
 
     class Config:
         orm_mode = True

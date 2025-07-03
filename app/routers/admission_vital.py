@@ -4,7 +4,7 @@ from typing import List
 from app.database import get_db
 from app.schemas.admission_vital import AdmissionVitalCreate, AdmissionVitalUpdate, AdmissionVitalOut
 from app.crud.admission_vital import (
-    create_admission_vital, get_admission_vital, get_all_admission_vitals, update_admission_vital, delete_admission_vital
+    create_admission_vital, get_admission_vital, get_all_admission_vitals, update_admission_vital, delete_admission_vital, get_vitals_by_admission_id
 )
 
 router = APIRouter(prefix="/admission-vitals", tags=["Admission Vitals"])
@@ -32,3 +32,15 @@ async def update_admission_vital_route(vital_id: int, vital: AdmissionVitalUpdat
 async def delete_admission_vital_route(vital_id: int, db: AsyncSession = Depends(get_db)):
     await delete_admission_vital(db, vital_id)
     return {"ok": True}
+
+@router.get("/by-admission/{admission_id}", response_model=List[AdmissionVitalOut])
+async def fetch_vitals_by_admission(
+    admission_id: int,
+    skip: int = 0,
+    limit: int = 100,
+    db: AsyncSession = Depends(get_db)
+):
+    vitals = await get_vitals_by_admission_id(db, admission_id, skip, limit)
+    if not vitals:
+        raise HTTPException(status_code=404, detail="No vitals found for this admission")
+    return vitals

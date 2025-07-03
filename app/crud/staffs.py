@@ -131,10 +131,12 @@ async def delete_staff(db: AsyncSession, staff_id: int):
         return True
     return False
 
-async def get_staff_by_hospital(db: AsyncSession, hospital_id: int):
+async def get_staff_by_hospital(db: AsyncSession, hospital_id: int, skip: int = 0, limit: int = 100):
     result = await db.execute(
         select(Staff)
         .where(Staff.hospital_id == hospital_id)
+        .offset(skip)
+        .limit(limit)
         .options(selectinload(Staff.hospital), selectinload(Staff.user))
     )
     return result.scalars().all()

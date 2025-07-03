@@ -26,6 +26,7 @@ class RoleResponse(BaseModel):
         orm_mode = True
 class UserResponse(UserBase):
     id: Optional[int]
+    gender: Optional[str] = None
     role: Optional[RoleResponse]
 
     @computed_field
@@ -53,3 +54,4 @@ class PasswordUpdateRequest(BaseModel):
     user_id: int
     old_password: str
     new_password: str
+

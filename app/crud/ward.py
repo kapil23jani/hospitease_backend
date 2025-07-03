@@ -29,3 +29,9 @@ async def update_ward(db: AsyncSession, ward_id: int, ward: WardUpdate):
 async def delete_ward(db: AsyncSession, ward_id: int):
     await db.execute(delete(Ward).where(Ward.id == ward_id))
     await db.commit()
+
+async def get_wards_by_hospital_id(db: AsyncSession, hospital_id: int, skip: int = 0, limit: int = 100):
+    result = await db.execute(
+        select(Ward).where(Ward.hospital_id == hospital_id).offset(skip).limit(limit)
+    )
+    return result.scalars().all()

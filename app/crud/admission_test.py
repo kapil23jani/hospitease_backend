@@ -29,3 +29,9 @@ async def update_admission_test(db: AsyncSession, test_id: int, test: AdmissionT
 async def delete_admission_test(db: AsyncSession, test_id: int):
     await db.execute(delete(AdmissionTest).where(AdmissionTest.id == test_id))
     await db.commit()
+
+async def get_tests_by_admission_id(db: AsyncSession, admission_id: int, skip: int = 0, limit: int = 100):
+    result = await db.execute(
+        select(AdmissionTest).where(AdmissionTest.admission_id == admission_id).offset(skip).limit(limit)
+    )
+    return result.scalars().all()

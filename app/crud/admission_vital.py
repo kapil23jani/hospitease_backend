@@ -29,3 +29,9 @@ async def update_admission_vital(db: AsyncSession, vital_id: int, vital: Admissi
 async def delete_admission_vital(db: AsyncSession, vital_id: int):
     await db.execute(delete(AdmissionVital).where(AdmissionVital.id == vital_id))
     await db.commit()
+
+async def get_vitals_by_admission_id(db: AsyncSession, admission_id: int, skip: int = 0, limit: int = 100):
+    result = await db.execute(
+        select(AdmissionVital).where(AdmissionVital.admission_id == admission_id).offset(skip).limit(limit)
+    )
+    return result.scalars().all()

@@ -51,6 +51,26 @@ async def listing_appointments(
         appointmentType=appointmentType,
         problem=problem
     )
+
+@router.get("/grouped/list", response_model=dict)
+async def grouped(db: AsyncSession = Depends(get_db)):
+    return await get_grouped_appointments(db)
+
+@router.get("/grouped-by-doctor", response_model=dict)
+async def grouped_appointments_by_doctor(
+    doctor_id: int = Query(..., description="Doctor ID"),
+    db: AsyncSession = Depends(get_db)
+):
+    return await get_grouped_appointments(db, doctor_id=doctor_id)
+
+@router.get("/grouped-by-patient", response_model=dict)
+async def grouped_appointments_by_patient(
+    patient_id: int = Query(..., description="Patient ID"),
+    db: AsyncSession = Depends(get_db)
+):
+    return await get_grouped_appointments(db, patient_id=patient_id)
+
+
 @router.get("/{appointment_id}", response_model=AppointmentResponse)
 async def get_appointment(appointment_id: int, db: AsyncSession = Depends(get_db)):
     appointment = await get_appointment_by_id(db, appointment_id)
@@ -93,10 +113,6 @@ async def fetch_doctor_by_appointment(appointment_id: int, db: AsyncSession = De
     if not doctor:
         raise HTTPException(status_code=404, detail="Doctor not found")
     return doctor
-
-@router.get("/grouped/list", response_model=dict)
-async def grouped(db: AsyncSession = Depends(get_db)):
-    return await get_grouped_appointments(db)
 
 
 class DateRangeRequest(BaseModel):

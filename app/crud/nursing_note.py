@@ -29,3 +29,9 @@ async def update_nursing_note(db: AsyncSession, note_id: int, note: NursingNoteU
 async def delete_nursing_note(db: AsyncSession, note_id: int):
     await db.execute(delete(NursingNote).where(NursingNote.id == note_id))
     await db.commit()
+
+async def get_nursing_notes_by_admission_id(db: AsyncSession, admission_id: int, skip: int = 0, limit: int = 100):
+    result = await db.execute(
+        select(NursingNote).where(NursingNote.admission_id == admission_id).offset(skip).limit(limit)
+    )
+    return result.scalars().all()

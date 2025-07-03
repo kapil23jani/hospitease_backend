@@ -4,7 +4,7 @@ from typing import List
 from app.database import get_db
 from app.schemas.nursing_note import NursingNoteCreate, NursingNoteUpdate, NursingNoteOut
 from app.crud.nursing_note import (
-    create_nursing_note, get_nursing_note, get_all_nursing_notes, update_nursing_note, delete_nursing_note
+    create_nursing_note, get_nursing_note, get_all_nursing_notes, update_nursing_note, delete_nursing_note, get_nursing_notes_by_admission_id
 )
 
 router = APIRouter(prefix="/nursing-notes", tags=["Nursing Notes"])
@@ -32,3 +32,15 @@ async def update_nursing_note_route(note_id: int, note: NursingNoteUpdate, db: A
 async def delete_nursing_note_route(note_id: int, db: AsyncSession = Depends(get_db)):
     await delete_nursing_note(db, note_id)
     return {"ok": True}
+
+@router.get("/by-admission/{admission_id}", response_model=List[NursingNoteOut])
+async def fetch_nursing_notes_by_admission(
+    admission_id: int,
+    skip: int = 0,
+    limit: int = 100,
+    db: AsyncSession = Depends(get_db)
+):
+    notes = await get_nursing_notes_by_admission_id(db, admission_id, skip, limit)
+    if not notes:
+        raise HTTPException(status_code=404, detail="No nursing notes found for this admission")
+    return notes

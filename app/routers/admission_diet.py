@@ -6,6 +6,7 @@ from app.schemas.admission_diet import AdmissionDietCreate, AdmissionDietUpdate,
 from app.crud.admission_diet import (
     create_admission_diet, get_admission_diet, get_all_admission_diets, update_admission_diet, delete_admission_diet
 )
+from app.crud.admission_diet import get_diets_by_admission_id
 
 router = APIRouter(prefix="/admission-diets", tags=["Admission Diets"])
 
@@ -32,3 +33,15 @@ async def update_admission_diet_route(diet_id: int, diet: AdmissionDietUpdate, d
 async def delete_admission_diet_route(diet_id: int, db: AsyncSession = Depends(get_db)):
     await delete_admission_diet(db, diet_id)
     return {"ok": True}
+
+@router.get("/by-admission/{admission_id}", response_model=List[AdmissionDietOut])
+async def fetch_diets_by_admission(
+    admission_id: int,
+    skip: int = 0,
+    limit: int = 100,
+    db: AsyncSession = Depends(get_db)
+):
+    diets = await get_diets_by_admission_id(db, admission_id, skip, limit)
+    if not diets:
+        raise HTTPException(status_code=404, detail="No diets found for this admission")
+    return diets

@@ -4,7 +4,7 @@ from typing import List
 from app.database import get_db
 from app.schemas.admission_test import AdmissionTestCreate, AdmissionTestUpdate, AdmissionTestOut
 from app.crud.admission_test import (
-    create_admission_test, get_admission_test, get_all_admission_tests, update_admission_test, delete_admission_test
+    create_admission_test, get_admission_test, get_all_admission_tests, update_admission_test, delete_admission_test, get_tests_by_admission_id
 )
 
 router = APIRouter(prefix="/admission-tests", tags=["Admission Tests"])
@@ -32,3 +32,15 @@ async def update_admission_test_route(test_id: int, test: AdmissionTestUpdate, d
 async def delete_admission_test_route(test_id: int, db: AsyncSession = Depends(get_db)):
     await delete_admission_test(db, test_id)
     return {"ok": True}
+
+@router.get("/by-admission/{admission_id}", response_model=List[AdmissionTestOut])
+async def fetch_tests_by_admission(
+    admission_id: int,
+    skip: int = 0,
+    limit: int = 100,
+    db: AsyncSession = Depends(get_db)
+):
+    tests = await get_tests_by_admission_id(db, admission_id, skip, limit)
+    if not tests:
+        raise HTTPException(status_code=404, detail="No tests found for this admission")
+    return tests

@@ -55,3 +55,4 @@ class Hospital(Base):
 
     staff_members = relationship("Staff", back_populates="hospital")
     wards = relationship("Ward", back_populates="hospital")
+    admissions = relationship("Admission", back_populates="hospital")

@@ -1,13 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
-from app.crud.patient import get_patients, get_patient, create_patient, get_patients_by_hospital_id, update_patient, delete_patient, search_patients, get_hospital_by_patient_id
+from app.crud.patient import get_patients, get_patient, create_patient, get_patients_by_hospital_id, update_patient, delete_patient, search_patients, get_hospital_by_patient_id, login_patient_by_mrd, get_patients_by_doctor_id
 from app.schemas.patient import PatientCreate, PatientUpdate, PatientResponse, PatientBasicResponse
 from typing import List, Optional
 from app.schemas.hospital import HospitalResponse
-
 router = APIRouter()
-
 @router.get("/", response_model=List[PatientResponse])
 async def read_patients(db: AsyncSession = Depends(get_db)):
     return await get_patients(db)
@@ -76,4 +74,25 @@ async def get_patients_by_hospital(
     patients = await get_patients_by_hospital_id(db, hospital_id)
     if not patients:
         raise HTTPException(status_code=404, detail="No patients found for this hospital")
+    return patients
+
+@router.post("/login-mrd", response_model=PatientResponse)
+async def login_by_mrd(
+    mrd_number: int,
+    password: str,
+    db: AsyncSession = Depends(get_db)
+):
+    patient = await login_patient_by_mrd(db, mrd_number, password)
+    if not patient:
+        raise HTTPException(status_code=401, detail="Invalid MRD number or password")
+    return patient
+
+@router.get("/by-doctor/{doctor_id}", response_model=List[PatientResponse])
+async def get_patients_by_doctor(
+    doctor_id: int,
+    db: AsyncSession = Depends(get_db)
+):
+    patients = await get_patients_by_doctor_id(db, doctor_id)
+    if not patients:
+        raise HTTPException(status_code=404, detail="No patients found for this doctor")
     return patients

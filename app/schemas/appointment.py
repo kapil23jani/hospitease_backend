@@ -26,6 +26,7 @@ class AppointmentBase(BaseModel):
     appointment_date: Optional[str] = None
     appointment_time: Optional[str] = None
     status: Optional[str] = None
+    mode_of_appointment: Optional[str] = None  # <-- Add this line
 
 
 # Schema for creating an appointment

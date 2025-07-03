@@ -29,7 +29,7 @@ class Appointment(Base):
     appointment_time = Column(Text, nullable=True)
     status = Column(Text, nullable=True)
     appointment_unique_id = Column(String, unique=True, index=True, nullable=False)
-
+    mode_of_appointment = Column(String, nullable=True)
     patient = relationship("Patient", back_populates="appointments", lazy="selectin")
     doctor = relationship("Doctor", back_populates="appointments", lazy="selectin")
     symptoms = relationship("Symptom", back_populates="appointment", cascade="all, delete-orphan")

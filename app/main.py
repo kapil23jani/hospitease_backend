@@ -17,6 +17,8 @@ from app.routers import admission_medicine
 from app.routers import nursing_note  # <-- add this import
 from app.routers import admission_test  # <-- add this import
 from app.routers import admission_diet
+from app.routers import admission_discharge
+
 app = FastAPI()
 
 app.add_middleware(
@@ -71,6 +73,7 @@ app.include_router(admission_medicine.router)  # <-- add this line
 app.include_router(nursing_note.router)  # <-- add this line
 app.include_router(admission_test.router)  # <-- add this line
 app.include_router(admission_diet.router)  # <-- add this line
+app.include_router(admission_discharge.router)  # <-- add this line
 
 @app.get("/", tags=["Health"])
 async def health_check():

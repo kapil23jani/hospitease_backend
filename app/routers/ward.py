@@ -4,7 +4,7 @@ from typing import List
 from app.database import get_db
 from app.schemas.ward import WardCreate, WardUpdate, WardOut
 from app.crud.ward import (
-    create_ward, get_ward, get_all_wards, update_ward, delete_ward
+    create_ward, get_ward, get_all_wards, update_ward, delete_ward, get_wards_by_hospital_id
 )
 
 router = APIRouter(prefix="/wards", tags=["Wards"])
@@ -32,3 +32,15 @@ async def update_ward_route(ward_id: int, ward: WardUpdate, db: AsyncSession = D
 async def delete_ward_route(ward_id: int, db: AsyncSession = Depends(get_db)):
     await delete_ward(db, ward_id)
     return {"ok": True}
+
+@router.get("/by-hospital/{hospital_id}", response_model=List[WardOut])
+async def fetch_wards_by_hospital(
+    hospital_id: int,
+    skip: int = 0,
+    limit: int = 100,
+    db: AsyncSession = Depends(get_db)
+):
+    wards = await get_wards_by_hospital_id(db, hospital_id, skip, limit)
+    if not wards:
+        raise HTTPException(status_code=404, detail="No wards found for this hospital")
+    return wards

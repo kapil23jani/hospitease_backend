@@ -22,6 +22,7 @@ class PatientBase(BaseModel):
     zipcode: Optional[str] = None
     hospital_id: int
     patient_unique_id:  Optional[str] = None
+    mrd_number: Optional[str] = None
 
 
 class PatientCreate(PatientBase):
@@ -32,9 +33,10 @@ class PatientUpdate(PatientBase):
 
 class PatientResponse(PatientBase):
     id: int
+    mrd_number: Optional[int] = None
 
     class Config:
-        from_attributes = True
+        from_attributes = True  # for Pydantic v2
 class PatientBasicResponse(BaseModel):
     id: int
     uniqueId: str

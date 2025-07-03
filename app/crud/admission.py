@@ -1,3 +1,4 @@
+from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import update, delete
@@ -51,3 +52,91 @@ async def update_admission(db: AsyncSession, admission_id: int, admission: Admis
 async def delete_admission(db: AsyncSession, admission_id: int):
     await db.execute(delete(Admission).where(Admission.id == admission_id))
     await db.commit()
+
+async def get_admissions_filtered(
+    db: AsyncSession,
+    doctor_id: Optional[int] = None,
+    staff_id: Optional[int] = None,
+    patient_id: Optional[int] = None
+):
+    query = select(Admission).options(
+        selectinload(Admission.hospital),
+        selectinload(Admission.vitals),
+        selectinload(Admission.medicines),
+        selectinload(Admission.nursing_notes),
+        selectinload(Admission.tests),
+        selectinload(Admission.diets),
+        selectinload(Admission.discharge),
+    )
+    if doctor_id is not None:
+        query = query.where(Admission.doctor_id == doctor_id)
+    if staff_id is not None:
+        query = query.where(Admission.staff_id == staff_id)
+    if patient_id is not None:
+        query = query.where(Admission.patient_id == patient_id)
+    result = await db.execute(query)
+    return result.scalars().all()
+
+async def get_admissions_by_hospital_id(db: AsyncSession, hospital_id: int):
+    result = await db.execute(
+        select(Admission)
+        .options(
+            selectinload(Admission.hospital),
+            selectinload(Admission.vitals),
+            selectinload(Admission.medicines),
+            selectinload(Admission.nursing_notes),
+            selectinload(Admission.tests),
+            selectinload(Admission.diets),
+            selectinload(Admission.discharge),
+        )
+        .where(Admission.hospital_id == hospital_id)
+    )
+    return result.scalars().all()
+
+async def get_admissions_by_doctor_id(db: AsyncSession, doctor_id: int):
+    result = await db.execute(
+        select(Admission)
+        .options(
+            selectinload(Admission.hospital),
+            selectinload(Admission.vitals),
+            selectinload(Admission.medicines),
+            selectinload(Admission.nursing_notes),
+            selectinload(Admission.tests),
+            selectinload(Admission.diets),
+            selectinload(Admission.discharge),
+        )
+        .where(Admission.doctor_id == doctor_id)
+    )
+    return result.scalars().all()
+
+async def get_admissions_by_staff_id(db: AsyncSession, staff_id: int):
+    result = await db.execute(
+        select(Admission)
+        .options(
+            selectinload(Admission.hospital),
+            selectinload(Admission.vitals),
+            selectinload(Admission.medicines),
+            selectinload(Admission.nursing_notes),
+            selectinload(Admission.tests),
+            selectinload(Admission.diets),
+            selectinload(Admission.discharge),
+        )
+        .where(Admission.staff_id == staff_id)
+    )
+    return result.scalars().all()
+
+async def get_admissions_by_patient_id(db: AsyncSession, patient_id: int):
+    result = await db.execute(
+        select(Admission)
+        .options(
+            selectinload(Admission.hospital),
+            selectinload(Admission.vitals),
+            selectinload(Admission.medicines),
+            selectinload(Admission.nursing_notes),
+            selectinload(Admission.tests),
+            selectinload(Admission.diets),
+            selectinload(Admission.discharge),
+        )
+        .where(Admission.patient_id == patient_id)
+    )
+    return result.scalars().all()

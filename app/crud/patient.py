@@ -8,6 +8,8 @@ import uuid
 from datetime import datetime, timedelta
 from sqlalchemy import text, and_, or_
 from typing import List
+import random
+from app.models.appointment import Appointment
 
 async def get_patients(
     db: AsyncSession,
@@ -81,25 +83,42 @@ async def get_patient(db: AsyncSession, patient_id: int):
     return PatientResponse.model_validate(patient) if patient else None
 
 async def create_patient(db: AsyncSession, patient_data: PatientCreate):
+    # Check for duplicate email
+    if patient_data.email:
+        result = await db.execute(select(Patient).filter(Patient.email == patient_data.email))
+        if result.scalar():
+            raise Exception("A patient with this email already exists.")
+
+    # Generate a unique patient_unique_id
     result = await db.execute(
         text("SELECT patient_unique_id FROM patients ORDER BY id DESC LIMIT 1")
     )
-    last_patient_id = result.scalar()
-
-    if last_patient_id and last_patient_id.isdigit():
-        new_patient_id = str(int(last_patient_id) + 1)
+    last_id = result.scalar()
+    if last_id and last_id.isdigit():
+        new_patient_id = str(int(last_id) + 1)
     else:
-        new_patient_id = "100001"
+        new_patient_id = "10001"
+
+    while True:
+        exists = await db.execute(select(Patient).filter(Patient.patient_unique_id == new_patient_id))
+        if not exists.scalar():
+            break
+
+    # Generate unique 15-digit MRD number
+    while True:
+        mrd_number = random.randint(10**14, 10**15 - 1)
+        exists = await db.execute(select(Patient).filter(Patient.mrd_number == mrd_number))
+        if not exists.scalar():
+            break
 
     patient_dict = patient_data.model_dump()
-    if "patient_unique_id" not in patient_dict or not patient_dict["patient_unique_id"]:
-        patient_dict["patient_unique_id"] = new_patient_id
+    patient_dict["patient_unique_id"] = new_patient_id
+    patient_dict["mrd_number"] = mrd_number
 
     new_patient = Patient(**patient_dict)
     db.add(new_patient)
     await db.commit()
     await db.refresh(new_patient)
-
     return PatientResponse.model_validate(new_patient)
 
 async def update_patient(db: AsyncSession, patient_id: int, patient_data: PatientUpdate):
@@ -186,3 +205,35 @@ async def get_patients_by_hospital_id(db: AsyncSession, hospital_id: int) -> Lis
         })
 
     return response
+
+async def login_patient_by_mrd(db: AsyncSession, mrd_number: int, password: str):
+    print(f"Login attempt: mrd_number={mrd_number}, password={password}")  # Log incoming params
+    result = await db.execute(select(Patient).filter(Patient.mrd_number == mrd_number))
+    patient = result.scalars().first()
+    print(f"DB patient: {patient}")  # Log patient object
+    if not patient or not patient.date_of_birth:
+        print("No patient found or missing date_of_birth")
+        return None
+    try:
+        dob = datetime.strptime(patient.date_of_birth, "%Y-%m-%d")
+    except ValueError:
+        print(f"Invalid date_of_birth format in DB: {patient.date_of_birth}")
+        return None
+    dob_str = dob.strftime("%d/%m/%Y")
+    dob_str_noslash = dob.strftime("%d%m%Y")
+    print(f"DB DOB for password check: {dob_str} or {dob_str_noslash}")
+    if password != dob_str and password != dob_str_noslash:
+        print("Password does not match DOB")
+        return None
+    print("Login successful")
+    return PatientResponse.model_validate(patient)
+
+async def get_patients_by_doctor_id(db: AsyncSession, doctor_id: int):
+    result = await db.execute(
+        select(Patient)
+        .join(Appointment, Patient.id == Appointment.patient_id)
+        .where(Appointment.doctor_id == doctor_id)
+        .options(selectinload(Patient.appointments))
+        .distinct()
+    )
+    return result.scalars().all()
