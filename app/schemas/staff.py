@@ -8,14 +8,14 @@ class HospitalOut(BaseModel):
     name: Optional[str] = None  # Add more fields as needed
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class UserOut(BaseModel):
     id: int
     email: Optional[str] = None  # Add more fields as needed
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class StaffBase(BaseModel):
     hospital_id: int
@@ -56,4 +56,4 @@ class StaffOut(StaffBase):
     user: Optional[UserOut] = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True

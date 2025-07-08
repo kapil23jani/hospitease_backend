@@ -31,4 +31,4 @@ class MedicineUpdate(BaseModel):
 class MedicineOut(MedicineBase):
     id: int
     class Config:
-        orm_mode = True
+        from_attributes = True

@@ -13,7 +13,7 @@ class UserCreate(UserBase):
     role_id: int     
 
     class Config:
-        orm_mode = True
+        from_attributes = True
         
 class UserUpdate(UserBase):
     password: Optional[str] = None
@@ -23,7 +23,7 @@ class RoleResponse(BaseModel):
     name: str
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 class UserResponse(UserBase):
     id: Optional[int]
     gender: Optional[str] = None
@@ -36,10 +36,10 @@ class UserResponse(UserBase):
         return self.role.name if self.role else None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 class ChangePasswordRequest(BaseModel):
     username: str
     current_password: str

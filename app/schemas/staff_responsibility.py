@@ -13,7 +13,7 @@ class StaffResponsibilityResponse(StaffResponsibilityBase):
     id: int
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class StaffResponsibilityAssignmentBase(BaseModel):
     staff_id: int
@@ -31,4 +31,4 @@ class StaffResponsibilityAssignmentResponse(StaffResponsibilityAssignmentBase):
     responsibility: StaffResponsibilityResponse
 
     class Config:
-        orm_mode = True
+        from_attributes = True

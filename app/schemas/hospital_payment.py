@@ -35,7 +35,7 @@ class HospitalShortInfo(BaseModel):
     name: str
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class HospitalPaymentWithHospitalResponse(BaseModel):
     transaction_id: str
@@ -47,4 +47,4 @@ class HospitalPaymentWithHospitalResponse(BaseModel):
     id: int
 
     class Config:
-        orm_mode = True
+        from_attributes = True

@@ -54,4 +54,4 @@ class AdmissionOut(BaseModel):
     discharge: Optional[AdmissionDischargeOut] = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True

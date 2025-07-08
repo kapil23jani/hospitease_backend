@@ -16,7 +16,7 @@ class ReceiptLineItem(ReceiptLineItemBase):
     receipt_id: int
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class ReceiptBase(BaseModel):
     hospital_id: int
@@ -42,4 +42,4 @@ class Receipt(ReceiptBase):
     line_items: List[ReceiptLineItem]
 
     class Config:
-        orm_mode = True
+        from_attributes = True

@@ -39,7 +39,7 @@ class HospitalResponse(HospitalBase):
     created_at: Optional[datetime.datetime] = None
     updated_at: Optional[datetime.datetime] = None
     class Config:
-        orm_mode = True
+        from_attributes = True
 class DoctorBase(BaseModel):
     title: Optional[str] = None
     first_name: str
@@ -94,4 +94,4 @@ class DoctorResponse(DoctorBase):
     hospital: HospitalResponse
 
     class Config:
-        orm_mode = True
+        from_attributes = True
