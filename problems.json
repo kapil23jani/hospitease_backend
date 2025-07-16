@@ -1,0 +1,136 @@
+{
+  "departments": [
+    {
+      "id": 6,
+      "name": "ऊर्जा विभाग",
+      "attributes": [
+        {
+          "id": 1001,
+          "name": "बिजली नहीं आ रही",
+          "keywords": ["बिजली नहीं आ रही", "no electricity", "light चली गई", "बिजली चली", "current नहीं"],
+          "priority": "high"
+        },
+        {
+          "id": 1002,
+          "name": "वोल्टेज की समस्या",
+          "keywords": ["low voltage", "voltage problem", "पंखा धीमा चल रहा", "voltage कम", "उपकरण नहीं चल रहे"],
+          "priority": "high"
+        },
+        {
+          "id": 1003,
+          "name": "बिजली का बिल गलत है",
+          "keywords": ["बिल गलत", "बिल ज्यादा", "wrong bill", "electricity bill issue"],
+          "priority": "medium"
+        },
+        {
+          "id": 1004,
+          "name": "मीटर की गड़बड़ी",
+          "keywords": ["meter नहीं चल रहा", "मीटर तेज चल रहा", "meter problem", "मीटर खराब"],
+          "priority": "medium"
+        },
+        {
+          "id": 1005,
+          "name": "ट्रांसफार्मर फुंका हुआ",
+          "keywords": ["transformer जला", "ट्रांसफार्मर नहीं चल रहा", "transformer down", "power cut transformer"],
+          "priority": "high"
+        },
+        {
+          "id": 1006,
+          "name": "खम्बा गिरा हुआ / टेढ़ा",
+          "keywords": ["pole गिरा", "electric pole down", "खम्बा टेढ़ा", "खम्बा टूटा"],
+          "priority": "medium"
+        },
+        {
+          "id": 1007,
+          "name": "तार टूटे हुए हैं",
+          "keywords": ["तार टूटे", "broken wire", "live wire", "dangerous wire"],
+          "priority": "high"
+        },
+        {
+          "id": 1008,
+          "name": "नई कनेक्शन की आवश्यकता",
+          "keywords": ["नई बिजली कनेक्शन", "electricity connection", "new connection apply"],
+          "priority": "low"
+        },
+        {
+          "id": 1009,
+          "name": "बिजली चोरी की सूचना",
+          "keywords": ["बिजली चोरी", "illegal connection", "power theft", "meter bypass"],
+          "priority": "medium"
+        },
+        {
+          "id": 1010,
+          "name": "अधिकारियों की लापरवाही",
+          "keywords": ["lineman नहीं आता", "कोई सुनवाई नहीं", "official negligent", "कर्मचारी लापरवाह"],
+          "priority": "medium"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "जल विभाग",
+      "attributes": [
+        {
+          "id": 2001,
+          "name": "पानी की सप्लाई बंद है",
+          "keywords": ["पानी नहीं आ रहा", "no water supply", "tap dry", "जल नहीं", "नल में पानी नहीं"],
+          "priority": "high"
+        },
+        {
+          "id": 2002,
+          "name": "गंदा पानी आ रहा है",
+          "keywords": ["गंदा पानी", "muddy water", "bad smell in water", "yellow पानी", "smelly water"],
+          "priority": "high"
+        },
+        {
+          "id": 2003,
+          "name": "पानी का प्रेशर कम है",
+          "keywords": ["कम प्रेशर", "water trickle", "pressure low", "slow पानी", "pump नहीं भरता"],
+          "priority": "medium"
+        },
+        {
+          "id": 2004,
+          "name": "नल खराब है / टूट गया",
+          "keywords": ["नल टूट गया", "tap broken", "leaking tap", "जल व्यर्थ हो रहा है"],
+          "priority": "medium"
+        },
+        {
+          "id": 2005,
+          "name": "सप्लाई टाइमिंग गड़बड़ है",
+          "keywords": ["पानी देर से आता है", "supply irregular", "no timing", "जल सप्लाई टाइमिंग"],
+          "priority": "low"
+        },
+        {
+          "id": 2006,
+          "name": "टंकी साफ नहीं है",
+          "keywords": ["water tank dirty", "टंकी से बदबू", "tank साफ़ नहीं"],
+          "priority": "medium"
+        },
+        {
+          "id": 2007,
+          "name": "लाइन में लीक हो रही है",
+          "keywords": ["water leakage", "pipe leaking", "लाइन लीकेज", "गलियों में पानी बह रहा"],
+          "priority": "medium"
+        },
+        {
+          "id": 2008,
+          "name": "टंकी में पानी नहीं भरता",
+          "keywords": ["tank empty", "मोटर नहीं भरती", "टंकी सूखी", "टंकी पानी नहीं भरता"],
+          "priority": "medium"
+        },
+        {
+          "id": 2009,
+          "name": "वाटर टैंकर नहीं आ रहा",
+          "keywords": ["tankers missing", "no tanker", "जल टैंकर नहीं आया", "पानी टैंकर लेट"],
+          "priority": "high"
+        },
+        {
+          "id": 2010,
+          "name": "नया कनेक्शन चाहिए",
+          "keywords": ["new water connection", "नई जल कनेक्शन", "tap लगाने के लिए आवेदन"],
+          "priority": "low"
+        }
+      ]
+    }
+  ]
+}

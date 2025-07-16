@@ -9,6 +9,7 @@ from app.routers import admin_dashboard  # <-- Add this import
 from app.routers import staff  # <-- Add this import
 from app.routers import bed_type
 from app.routers import ward
+from app.routers.conversation import router as conversation_router
 from app.routers.support_chat import router as support_chat_router
 from app.routers.smart_report import router as smart_report_router  # <-- Add this import
 from app.routers import bed
@@ -35,7 +36,7 @@ from app.routers.staff_responsibility import router as staff_responsibility_rout
 app = FastAPI()
 
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
-
+app.mount("/static/audio", StaticFiles(directory="static/audio"), name="audio")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -101,6 +102,7 @@ app.include_router(claim_item.router)
 app.include_router(ab_claim.router)
 app.include_router(chat_message_router)  # <-- Add this line
 app.include_router(staff_responsibility_router)  # <-- Add this line
+app.include_router(conversation_router)
 
 @app.get("/", tags=["Health"])
 async def health_check():
