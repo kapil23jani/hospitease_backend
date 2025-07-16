@@ -13,3 +13,5 @@ alembic/
 .env
 
 .vscode/
+client_secret.json
+domainkey.json
