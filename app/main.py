@@ -31,6 +31,8 @@ from app.routers import claim_item
 from app.routers import ab_claim
 from app.routers.chat_message import router as chat_message_router 
 from app.routers.staff_responsibility import router as staff_responsibility_router
+from app.routers import zoom_meetings
+from app.routers import reports
 
 app = FastAPI()
 
@@ -56,6 +58,8 @@ async def create_tables():
 async def on_startup():
     await create_tables()
 
+app.include_router(reports.router)
+app.include_router(zoom_meetings.router)
 app.include_router(role.router, prefix="/roles", tags=["Roles"])
 app.include_router(user.router, prefix="/users", tags=["Users"])
 app.include_router(hospital.router, prefix="/hospitals", tags=["Hospitals"])
