@@ -30,9 +30,10 @@ from sqlalchemy import inspect
 @event.listens_for(Session, "after_flush")
 def audit_after_flush(session, flush_context):
     for obj in session.new:
-        if hasattr(obj, '__tablename__') and obj.__tablename__ not in ['audit_logs', 'chat_messages']:
+        table_name = getattr(obj, '__tablename__', None) or obj.__class__.__name__
+        if table_name not in ['documents', 'audit_logs', 'chat_messages']:
             audit = AuditLog(
-                table_name=obj.__tablename__,
+                table_name=table_name,
                 record_id=getattr(obj, 'id', None),
                 action='create',
                 old_data=None,
@@ -44,10 +45,9 @@ def audit_after_flush(session, flush_context):
 
     for obj in session.dirty:
         if session.is_modified(obj, include_collections=False):
-            if hasattr(obj, '__tablename__') and obj.__tablename__ not in ['audit_logs', 'chat_messages']:
+            table_name = getattr(obj, '__tablename__', None) or obj.__class__.__name__
+            if table_name not in ['documents', 'audit_logs', 'chat_messages']:
                 old_data_dict = {}
-
-                # Use inspect to access attribute history safely
                 state = inspect(obj)
                 for attr in obj.__mapper__.column_attrs:
                     hist = state.attrs[attr.key].history
@@ -60,7 +60,7 @@ def audit_after_flush(session, flush_context):
                         old_data_dict[attr.key] = getattr(obj, attr.key)
 
                 audit = AuditLog(
-                    table_name=obj.__tablename__,
+                    table_name=table_name,
                     record_id=getattr(obj, 'id', None),
                     action='update',
                     old_data=json.dumps(old_data_dict, default=str),

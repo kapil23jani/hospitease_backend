@@ -2,6 +2,7 @@ import boto3
 import os
 import logging
 from dotenv import load_dotenv
+import re
 
 load_dotenv()
 
@@ -39,3 +40,21 @@ def upload_logo_to_s3(file_obj, filename, folder="hospital_logos"):
     except Exception as e:
         logging.error(f"Error uploading {filename} to S3: {e}")
         return None
+
+def get_presigned_url(s3_url, expires_in=3600):
+    # Parse bucket and key from s3_url
+    match = re.match(r"https://([^\.]+)\.s3[^/]+\.amazonaws\.com/(.+)", s3_url)
+    if not match:
+        return s3_url  # fallback to original if not S3 URL
+    bucket, key = match.groups()
+    s3 = boto3.client(
+        "s3",
+        aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"),
+        aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
+        region_name=os.getenv("AWS_REGION"),
+    )
+    return s3.generate_presigned_url(
+        "get_object",
+        Params={"Bucket": bucket, "Key": key},
+        ExpiresIn=expires_in,
+    )

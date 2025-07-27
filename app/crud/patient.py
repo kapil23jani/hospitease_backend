@@ -13,6 +13,11 @@ from app.models.appointment import Appointment
 from app.utils.mail import send_mail
 from app.utils.sms import send_sms
 import logging
+import openai
+import os
+
+openai_api_key = os.getenv("OPENAI_API_KEY")
+client = openai.OpenAI(api_key=openai_api_key)
 
 async def get_patients(
     db: AsyncSession,
@@ -260,3 +265,97 @@ async def get_patients_by_doctor_id(db: AsyncSession, doctor_id: int):
         .distinct()
     )
     return result.scalars().all()
+
+async def summarize_patient_history(db: AsyncSession, patient_id: int):
+    from app.models.appointment import Appointment
+    from app.models.test import Test
+    from app.models.appointment_medicine import Medicine
+    from app.models.vital import Vital
+    from app.models.symtom import Symptom
+    from app.models.health_info import HealthInfo
+
+    all_appts_result = await db.execute(
+        select(Appointment)
+        .filter(Appointment.patient_id == patient_id)
+        .order_by(Appointment.appointment_date, Appointment.appointment_time)
+    )
+    all_appointments = all_appts_result.scalars().all()
+
+    if not all_appointments:
+        return None
+
+    visit_history = []
+    for appt in all_appointments:
+        tests_result = await db.execute(
+            select(Test).filter(Test.appointment_id == appt.id)
+        )
+        tests = [t.__dict__ for t in tests_result.scalars().all()]
+
+        medicines_result = await db.execute(
+            select(Medicine).filter(Medicine.appointment_id == appt.id)
+        )
+        medicines = [m.__dict__ for m in medicines_result.scalars().all()]
+
+        vitals_result = await db.execute(
+            select(Vital).filter(Vital.appointment_id == appt.id)
+        )
+        vitals = [v.__dict__ for v in vitals_result.scalars().all()]
+
+        symptoms_result = await db.execute(
+            select(Symptom).filter(Symptom.appointment_id == appt.id)
+        )
+        symptoms = [s.__dict__ for s in symptoms_result.scalars().all()]
+
+        health_info_result = await db.execute(
+            select(HealthInfo).filter(HealthInfo.appointment_id == appt.id)
+        )
+        health_info = health_info_result.scalars().first()
+        health_info_data = health_info.__dict__ if health_info else {}
+
+        visit_data = {
+            "appointment": {
+                "id": appt.id,
+                "appointment_datetime": appt.appointment_datetime,
+                "problem": appt.problem,
+                "appointment_type": appt.appointment_type,
+                "reason": appt.reason,
+                "status": appt.status,
+                "blood_pressure": appt.blood_pressure,
+                "pulse_rate": appt.pulse_rate,
+                "temperature": appt.temperature,
+                "spo2": appt.spo2,
+                "weight": appt.weight,
+                "additional_notes": appt.additional_notes,
+                "advice": appt.advice,
+                "follow_up_date": appt.follow_up_date,
+                "follow_up_notes": appt.follow_up_notes,
+                "appointment_date": appt.appointment_date,
+                "appointment_time": appt.appointment_time,
+                "mode_of_appointment": appt.mode_of_appointment,
+            },
+            "tests": tests,
+            "medicines": medicines,
+            "vitals": vitals,
+            "symptoms": symptoms,
+            "health_info": health_info_data,
+        }
+        visit_history.append(visit_data)
+
+    prompt = (
+        "You are a helpful assistant. Please summarize the patient's health progress in simple language, so the patient can easily understand. "
+        "Focus on changes in blood pressure, pulse rate, temperature, SpO2, and weight. "
+        "Mention if things are improving, getting worse, or staying the same. "
+        "Do not use medical jargon. Use short, clear sentences. "
+        "Here is the patient's visit history:\n"
+        f"{visit_history}\n"
+        "Give a friendly summary and any advice for the patient."
+    )
+
+    chat = client.chat.completions.create(
+        model="gpt-4",
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.3
+    )
+
+    summary = chat.choices[0].message.content
+    return summary

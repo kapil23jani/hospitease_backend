@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime
 from sqlalchemy.orm import relationship
 from app.database import Base
 
@@ -7,8 +7,7 @@ class Document(Base):
     id = Column(Integer, primary_key=True, index=True)
     document_name = Column(String, nullable=False)
     document_type = Column(String, nullable=False)
-    upload_date = Column(String, nullable=False)
-    size = Column(String, nullable=False)
+    size = Column(Integer, nullable=False)
     status = Column(String, nullable=False)
 
     documentable_id = Column(Integer, nullable=False)

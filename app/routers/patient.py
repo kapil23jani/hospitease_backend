@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
-from app.crud.patient import get_patients, get_patient, create_patient, get_patients_by_hospital_id, update_patient, delete_patient, search_patients, get_hospital_by_patient_id, login_patient_by_mrd, get_patients_by_doctor_id
+from app.crud.patient import get_patients, get_patient, create_patient, get_patients_by_hospital_id, update_patient, delete_patient, search_patients, get_hospital_by_patient_id, login_patient_by_mrd, get_patients_by_doctor_id, summarize_patient_history
 from app.schemas.patient import PatientCreate, PatientUpdate, PatientResponse, PatientBasicResponse
 from typing import List, Optional
 from app.schemas.hospital import HospitalResponse
@@ -96,3 +96,10 @@ async def get_patients_by_doctor(
     if not patients:
         raise HTTPException(status_code=404, detail="No patients found for this doctor")
     return patients
+
+@router.get("/summarize-history/{patient_id}")
+async def summarize_history_api(patient_id: int, db: AsyncSession = Depends(get_db)):
+    summary = await summarize_patient_history(db, patient_id)
+    if not summary:
+        raise HTTPException(status_code=404, detail="No appointments found for this patient")
+    return {"summary": summary}
