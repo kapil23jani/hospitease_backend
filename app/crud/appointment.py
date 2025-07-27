@@ -28,7 +28,12 @@ from dotenv import load_dotenv
 from app.utils.sms import send_sms
 from app.utils.mail import send_mail
 from app.models.hospital import Hospital
-
+from app.models.test import Test
+from app.models.appointment_medicine import Medicine
+from app.models.test import Test
+from app.models.vital import Vital
+from app.models.symtom  import Symptom
+from app.models.health_info import HealthInfo
 
 openai_api_key = os.getenv("OPENAI_API_KEY")
 client = openai.OpenAI(api_key=openai_api_key)
@@ -593,5 +598,172 @@ JSON format:
     except Exception:
         return {"raw": output}
 
+async def summarize_appointment_visit(db: AsyncSession, appointment_id: int):
+    result = await db.execute(
+        select(Appointment).filter(Appointment.id == appointment_id)
+    )
+    appointment = result.scalars().first()
+    if not appointment:
+        return None  
+    tests_result = await db.execute(
+        select(Test).filter(Test.appointment_id == appointment_id)
+    )
+    tests = [t.__dict__ for t in tests_result.scalars().all()]
 
+    medicines_result = await db.execute(
+        select(Medicine).filter(Medicine.appointment_id == appointment_id)
+    )
+    medicines = [m.__dict__ for m in medicines_result.scalars().all()]
 
+    vitals_result = await db.execute(
+        select(Vital).filter(Vital.appointment_id == appointment_id)
+    )
+    vitals = [v.__dict__ for v in vitals_result.scalars().all()]
+
+    symptoms_result = await db.execute(
+        select(Symptom).filter(Symptom.appointment_id == appointment_id)
+    )
+    symptoms = [s.__dict__ for s in symptoms_result.scalars().all()]
+
+    health_info_result = await db.execute(
+        select(HealthInfo).filter(HealthInfo.appointment_id == appointment_id)
+    )
+    health_info = health_info_result.scalars().first()
+    health_info_data = health_info.__dict__ if health_info else {}
+
+    visit_data = {
+        "appointment": {
+            "id": appointment.id,
+            "appointment_datetime": appointment.appointment_datetime,
+            "problem": appointment.problem,
+            "appointment_type": appointment.appointment_type,
+            "reason": appointment.reason,
+            "status": appointment.status,
+            "blood_pressure": appointment.blood_pressure,
+            "pulse_rate": appointment.pulse_rate,
+            "temperature": appointment.temperature,
+            "spo2": appointment.spo2,
+            "weight": appointment.weight,
+            "additional_notes": appointment.additional_notes,
+            "advice": appointment.advice,
+            "follow_up_date": appointment.follow_up_date,
+            "follow_up_notes": appointment.follow_up_notes,
+            "appointment_date": appointment.appointment_date,
+            "appointment_time": appointment.appointment_time,
+            "mode_of_appointment": appointment.mode_of_appointment,
+        },
+        "tests": tests,
+        "medicines": medicines,
+        "vitals": vitals,
+        "symptoms": symptoms,
+        "health_info": health_info_data,
+    }
+
+    prompt = (
+        "Summarize the patient's visit history from the following data in a clear, concise way for a doctor or patient. "
+        "Here is the JSON data:\n"
+        f"{visit_data}\n"
+        "Summarize from the first visit to the latest, including tests, medicines, vitals, symptoms, health info, family histories, and any important changes."
+    )
+
+    chat = client.chat.completions.create(
+        model="gpt-4",
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.3
+    )
+
+    summary = chat.choices[0].message.content
+    return summary
+
+async def summarize_patient_visit_history(db: AsyncSession, appointment_id: int):
+    result = await db.execute(
+        select(Appointment).filter(Appointment.id == appointment_id)
+    )
+    appointment = result.scalars().first()
+    if not appointment:
+        return None
+    patient_id = appointment.patient_id
+
+    all_appts_result = await db.execute(
+        select(Appointment)
+        .filter(Appointment.patient_id == patient_id)
+        .order_by(Appointment.appointment_date, Appointment.appointment_time)
+    )
+    all_appointments = all_appts_result.scalars().all()
+
+    visit_history = []
+    for appt in all_appointments:
+        tests_result = await db.execute(
+            select(Test).filter(Test.appointment_id == appt.id)
+        )
+        tests = [t.__dict__ for t in tests_result.scalars().all()]
+
+        medicines_result = await db.execute(
+            select(Medicine).filter(Medicine.appointment_id == appt.id)
+        )
+        medicines = [m.__dict__ for m in medicines_result.scalars().all()]
+
+        vitals_result = await db.execute(
+            select(Vital).filter(Vital.appointment_id == appt.id)
+        )
+        vitals = [v.__dict__ for v in vitals_result.scalars().all()]
+
+        symptoms_result = await db.execute(
+            select(Symptom).filter(Symptom.appointment_id == appt.id)
+        )
+        symptoms = [s.__dict__ for s in symptoms_result.scalars().all()]
+
+        health_info_result = await db.execute(
+            select(HealthInfo).filter(HealthInfo.appointment_id == appt.id)
+        )
+        health_info = health_info_result.scalars().first()
+        health_info_data = health_info.__dict__ if health_info else {}
+
+        visit_data = {
+            "appointment": {
+                "id": appt.id,
+                "appointment_datetime": appt.appointment_datetime,
+                "problem": appt.problem,
+                "appointment_type": appt.appointment_type,
+                "reason": appt.reason,
+                "status": appt.status,
+                "blood_pressure": appt.blood_pressure,
+                "pulse_rate": appt.pulse_rate,
+                "temperature": appt.temperature,
+                "spo2": appt.spo2,
+                "weight": appt.weight,
+                "additional_notes": appt.additional_notes,
+                "advice": appt.advice,
+                "follow_up_date": appt.follow_up_date,
+                "follow_up_notes": appt.follow_up_notes,
+                "appointment_date": appt.appointment_date,
+                "appointment_time": appt.appointment_time,
+                "mode_of_appointment": appt.mode_of_appointment,
+            },
+            "tests": tests,
+            "medicines": medicines,
+            "vitals": vitals,
+            "symptoms": symptoms,
+            "health_info": health_info_data,
+        }
+        visit_history.append(visit_data)
+
+    prompt = (
+        "Analyze the following patient's visit history and summarize key trends, patterns, and changes over time. "
+        "Focus on how the patient's vitals (blood pressure, pulse rate, temperature, SpO2, weight) have changed, "
+        "and mention any significant increases, decreases, or stability. "
+        "Do not list each appointment separately. Instead, provide an overall summary of the patient's health progression, "
+        "highlighting any important findings or recommendations. "
+        "Here is the JSON data:\n"
+        f"{visit_history}\n"
+        "Summarize the trends and give actionable insights for the doctor or patient."
+    )
+
+    chat = client.chat.completions.create(
+        model="gpt-4",
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.3
+    )
+
+    summary = chat.choices[0].message.content
+    return summary

@@ -1,22 +1,20 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 from pydantic import BaseModel
-from fastapi import APIRouter, Depends, Query
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Depends
-
+from fastapi import Query
+from typing import List
 
 from app.crud.appointment import (
     get_appointments_by_date_range, create_appointment, get_appointments, get_appointment_by_id, get_appointments_by_hospital_id,
     update_appointment, delete_appointment, get_appointments_by_doctor_id,
-    get_appointments_by_patient_id, get_listing_appointments, get_doctor_by_appointment_id, get_patient_by_appointment_id, get_grouped_appointments
+    get_appointments_by_patient_id, get_listing_appointments, get_doctor_by_appointment_id, get_patient_by_appointment_id, get_grouped_appointments,
+    transcribe_and_parse_prescription, summarize_appointment_visit, summarize_patient_visit_history 
 )
 from app.schemas.appointment import AppointmentCreate, AppointmentUpdate, AppointmentResponse, AppointmentListingResponse
 from app.schemas.patient import PatientResponse
 from app.schemas.doctor import DoctorResponse
-from app.crud.appointment import transcribe_and_parse_prescription
-from typing import List
 
 router = APIRouter()
 
@@ -154,3 +152,10 @@ async def ai_prescription(
         return JSONResponse(result)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/summarize-visit/{appointment_id}")
+async def summarize_visit_api(appointment_id: int, db: AsyncSession = Depends(get_db)):
+    summary = await summarize_patient_visit_history(db, appointment_id)
+    if not summary:
+        raise HTTPException(status_code=404, detail="Appointment not found or no data to summarize")
+    return {"summary": summary}
