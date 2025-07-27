@@ -7,7 +7,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from app.database import get_db
 from app.schemas.user import UserCreate, TokenResponse, UserResponse, ChangePasswordRequest, PasswordUpdateRequest
 from app.crud.user import create_user, authenticate_user
-from app.utils import create_access_token
+# from app.utils import create_access_token
 from datetime import timedelta
 import logging
 from sqlalchemy import select

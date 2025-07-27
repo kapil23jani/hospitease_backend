@@ -45,7 +45,7 @@ class HospitalResponse(HospitalBase):
     updated_at: Optional[datetime.datetime] = None
     permissions: List[PermissionResponse] = []
     hospital_payments: List[HospitalPaymentResponse] = []
+    presigned_logo_url: Optional[str] = None
 
     class Config:
-        from_attributes = True
-        from_attributes = True
+        orm_mode = True

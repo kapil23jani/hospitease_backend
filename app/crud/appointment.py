@@ -25,6 +25,9 @@ import openai
 import os
 from fastapi import UploadFile
 from dotenv import load_dotenv
+from app.utils.sms import send_sms
+from app.utils.mail import send_mail
+from app.models.hospital import Hospital
 
 
 openai_api_key = os.getenv("OPENAI_API_KEY")
@@ -70,6 +73,51 @@ async def create_appointment(db: AsyncSession, appointment: AppointmentCreate):
     db.add(db_appointment)
     await db.commit()
     await db.refresh(db_appointment)
+
+    # Fetch related details
+    doctor = await db.execute(select(Doctor).filter(Doctor.id == db_appointment.doctor_id))
+    doctor_obj = doctor.scalars().first()
+    patient = await db.execute(select(Patient).filter(Patient.id == db_appointment.patient_id))
+    patient_obj = patient.scalars().first()
+    hospital_name = None
+    if doctor_obj and hasattr(doctor_obj, "hospital_id"):
+        hospital = await db.execute(select(Hospital).filter(Hospital.id == doctor_obj.hospital_id))
+        hospital_obj = hospital.scalars().first()
+        hospital_name = hospital_obj.name if hospital_obj else "Unknown Hospital"
+
+    # Prepare message
+    appointment_msg = (
+        f"Appointment Confirmed!\n"
+        f"Doctor: Dr. {doctor_obj.first_name} {doctor_obj.last_name if doctor_obj else ''}\n"
+        f"Hospital: {hospital_name}\n"
+        f"Date: {db_appointment.appointment_date}\n"
+        f"Time: {db_appointment.appointment_time}\n"
+        f"Type: {db_appointment.appointment_type}\n"
+        f"Reason: {db_appointment.reason}\n"
+        f"Problem: {db_appointment.problem}\n"
+        f"Appointment ID: {db_appointment.appointment_unique_id}\n"
+        f"Status: {db_appointment.status}\n"
+        f"Login: http://localhost:3000/patient/login\n"
+        f"Use Patient ID: {patient_obj.patient_unique_id if patient_obj else ''}\n"
+        f"Password: your date of birth in MM/DD/YYYY format."
+    )
+
+    # Send SMS if patient phone exists
+    if patient_obj and patient_obj.phone_number:
+        sms_result = send_sms(
+            to_number=patient_obj.phone_number,
+            body=appointment_msg
+        )
+        logging.info(f"Appointment SMS result for {patient_obj.phone_number}: {sms_result}")
+
+    # Send email if patient email exists
+    if patient_obj and patient_obj.email:
+        mail_result = send_mail(
+            to_email=patient_obj.email,
+            subject="Your Appointment is Confirmed!",
+            html_content=f"<pre>{appointment_msg}</pre>"
+        )
+        logging.info(f"Appointment email result for {patient_obj.email}: {mail_result}")
 
     return db_appointment
 
@@ -444,6 +492,67 @@ async def transcribe_and_parse_prescription(
 
     prompt = f"""You are a medical assistant. Convert the doctor's note into JSON.
 Note: {note}
+Respond in this language: {language}
+JSON format:
+{{
+  "complaint": "...",
+  "diagnosis": "...",
+  "medicines": [
+    {{
+      "name": "...",
+      "dosage": "...",
+      "frequency": "...",
+      "duration": "...",
+      "start_date": "...",
+      "status": "...",
+      "time_interval": "...",
+      "route": "...",
+      "quantity": "...",
+      "instruction": "..."
+    }}
+  ],
+  "tests": [
+    {{
+      "name": "...",
+      "instruction": "..."
+    }}
+  ]
+}}
+"""
+
+    chat = client.chat.completions.create(
+        model="gpt-4",
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.3
+    )
+
+    output = chat.choices[0].message.content
+    try:
+        return eval(output)
+    except Exception:
+        return {"raw": output}
+
+async def ai_prescription_suggestion(symptoms_text: str, symptoms_audio: UploadFile, language: str = "en"):
+    # If audio, transcribe first
+    if symptoms_audio:
+        temp_path = f"temp_symptoms.mp3"
+        with open(temp_path, "wb") as f:
+            f.write(await symptoms_audio.read())
+        with open(temp_path, "rb") as f:
+            symptoms_text = client.audio.transcriptions.create(
+                model="whisper-1",
+                file=f,
+                response_format="text"
+            )
+        os.remove(temp_path)
+        if hasattr(symptoms_text, "text"):
+            symptoms_text = symptoms_text.text
+
+    if not symptoms_text:
+        return {"error": "No symptoms provided."}
+
+    prompt = f"""You are an expert medical assistant. Based on the following symptoms, suggest medicines, dosage, and all details in structured JSON.
+Symptoms: {symptoms_text}
 Respond in this language: {language}
 JSON format:
 {{

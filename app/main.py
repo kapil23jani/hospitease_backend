@@ -33,6 +33,7 @@ from app.routers.chat_message import router as chat_message_router
 from app.routers.staff_responsibility import router as staff_responsibility_router
 from app.routers import zoom_meetings
 from app.routers import reports
+from app.routers import ai_prescription
 
 app = FastAPI()
 
@@ -105,6 +106,7 @@ app.include_router(claim_item.router)
 app.include_router(ab_claim.router)
 app.include_router(chat_message_router)  # <-- Add this line
 app.include_router(staff_responsibility_router)  # <-- Add this line
+app.include_router(ai_prescription.router)
 
 @app.get("/", tags=["Health"])
 async def health_check():

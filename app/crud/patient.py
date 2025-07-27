@@ -10,6 +10,9 @@ from sqlalchemy import text, and_, or_
 from typing import List
 import random
 from app.models.appointment import Appointment
+from app.utils.mail import send_mail
+from app.utils.sms import send_sms
+import logging
 
 async def get_patients(
     db: AsyncSession,
@@ -83,13 +86,6 @@ async def get_patient(db: AsyncSession, patient_id: int):
     return PatientResponse.model_validate(patient) if patient else None
 
 async def create_patient(db: AsyncSession, patient_data: PatientCreate):
-    # Remove duplicate email check
-    # if patient_data.email:
-    #     result = await db.execute(select(Patient).filter(Patient.email == patient_data.email))
-    #     if result.scalar():
-    #         raise Exception("A patient with this email already exists.")
-
-    # Generate a unique patient_unique_id
     result = await db.execute(
         text("SELECT patient_unique_id FROM patients ORDER BY id DESC LIMIT 1")
     )
@@ -104,7 +100,6 @@ async def create_patient(db: AsyncSession, patient_data: PatientCreate):
         if not exists.scalar():
             break
 
-    # Generate unique 15-digit MRD number
     while True:
         mrd_number = random.randint(10**14, 10**15 - 1)
         exists = await db.execute(select(Patient).filter(Patient.mrd_number == mrd_number))
@@ -119,6 +114,34 @@ async def create_patient(db: AsyncSession, patient_data: PatientCreate):
     db.add(new_patient)
     await db.commit()
     await db.refresh(new_patient)
+
+    if new_patient.email:
+        logging.info(f"Attempting to send welcome email to {new_patient.email}")
+        mail_result = send_mail(
+            to_email=new_patient.email,
+            subject="Welcome to Hospitease!",
+            html_content=f"""
+                <h2>Welcome, {new_patient.first_name}!</h2>
+                <p>Your registration is successful. Your Patient ID is <b>{new_patient.patient_unique_id}</b>.</p>
+                <p>Thank you for choosing Hospitease.</p>
+            """
+        )
+        logging.info(f"SendGrid mail result for {new_patient.email}: {mail_result}")
+
+    # Send SMS with login instructions if phone number exists
+    if new_patient.phone_number:
+        sms_message = (
+            f"Welcome to Hospitease!\n"
+            f"Login to your portal: http://localhost:3000/patient/login\n"
+            f"Use Patient ID: {new_patient.patient_unique_id}\n"
+            f"Password: your date of birth in MM/DD/YYYY format."
+        )
+        sms_result = send_sms(
+            to_number=new_patient.phone_number,
+            body=sms_message
+        )
+        logging.info(f"Twilio SMS result for {new_patient.phone_number}: {sms_result}")
+
     return PatientResponse.model_validate(new_patient)
 
 async def update_patient(db: AsyncSession, patient_id: int, patient_data: PatientUpdate):

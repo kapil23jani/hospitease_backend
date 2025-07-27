@@ -12,6 +12,18 @@ class TestBase(BaseModel):
     staff_notes: Optional[str] = None
     test_date: str
     test_done_date: Optional[str] = None
+    _tests_docs_urls: Optional[list[str]] = []
+    id: Optional[int] = None
+    @property
+    def tests_docs_urls(self):
+        import json
+        if isinstance(self._tests_docs_urls, str):
+            return json.loads(self._tests_docs_urls)
+        return self._tests_docs_urls
+
+    @tests_docs_urls.setter
+    def tests_docs_urls(self, value):
+        self._tests_docs_urls = value
 
 class TestCreate(TestBase):
     pass
@@ -24,9 +36,25 @@ class TestUpdate(BaseModel):
     doctor_notes: Optional[str] = None
     staff_notes: Optional[str] = None
     test_done_date: Optional[str] = None
+    tests_docs_urls: Optional[list[str]] = None
 
-class TestResponse(TestBase):
+class TestResponse(BaseModel):
+    appointment_id: int
+    test_details: str
+    status: str
+    cost: float
+    description: Optional[str] = None
+    doctor_notes: Optional[str] = None
+    staff_notes: Optional[str] = None
+    test_date: str
+    test_done_date: Optional[str] = None
+    tests_docs_urls: Optional[list[str]] = []
     id: int
+    @classmethod
+    def from_orm(cls, obj):
+        data = super().from_orm(obj).__dict__
+        data['tests_docs_urls'] = obj.tests_docs_urls_list
+        return cls(**data)
 
     class Config:
-        from_attributes = True
+        orm_mode = True
