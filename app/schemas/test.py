@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 
 class TestBase(BaseModel):
     appointment_id: int
@@ -49,6 +49,8 @@ class TestResponse(BaseModel):
     test_date: str
     test_done_date: Optional[str] = None
     tests_docs_urls: Optional[list[str]] = []
+    tests_docs_presigned_urls: Optional[List[str]]  # <-- Add this line
+
     id: int
     @classmethod
     def from_orm(cls, obj):

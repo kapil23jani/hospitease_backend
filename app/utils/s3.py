@@ -3,6 +3,7 @@ import os
 import logging
 from dotenv import load_dotenv
 import re
+import mimetypes
 
 load_dotenv()
 
@@ -19,7 +20,9 @@ def upload_file_to_s3(file_obj, filename, folder="test_docs"):
     s3_key = f"{folder}/{filename}"
     logging.info(f"Uploading {filename} to S3 bucket {BUCKET_NAME} at {s3_key}")
     try:
-        s3_client.upload_fileobj(file_obj, BUCKET_NAME, s3_key)
+        content_type, _ = mimetypes.guess_type(filename)
+        extra_args = {"ContentType": content_type} if content_type else {}
+        s3_client.upload_fileobj(file_obj, BUCKET_NAME, s3_key, ExtraArgs=extra_args)
         url = f"https://{BUCKET_NAME}.s3.{os.getenv('AWS_REGION')}.amazonaws.com/{s3_key}"
         logging.info(f"Upload successful. File URL: {url}")
         return url
@@ -33,7 +36,9 @@ def upload_logo_to_s3(file_obj, filename, folder="hospital_logos"):
     s3_key = f"{folder}/{filename}"
     logging.info(f"Uploading {filename} to S3 bucket {BUCKET_NAME} at {s3_key}")
     try:
-        s3_client.upload_fileobj(file_obj, BUCKET_NAME, s3_key)
+        content_type, _ = mimetypes.guess_type(filename)
+        extra_args = {"ContentType": content_type} if content_type else {}
+        s3_client.upload_fileobj(file_obj, BUCKET_NAME, s3_key, ExtraArgs=extra_args)
         url = f"https://{BUCKET_NAME}.s3.{os.getenv('AWS_REGION')}.amazonaws.com/{s3_key}"
         logging.info(f"Upload successful. File URL: {url}")
         return url
@@ -42,7 +47,7 @@ def upload_logo_to_s3(file_obj, filename, folder="hospital_logos"):
         return None
 
 def get_presigned_url(s3_url, expires_in=3600):
-    # Parse bucket and key from s3_url
+    import re
     match = re.match(r"https://([^\.]+)\.s3[^/]+\.amazonaws\.com/(.+)", s3_url)
     if not match:
         return s3_url  # fallback to original if not S3 URL
@@ -55,6 +60,10 @@ def get_presigned_url(s3_url, expires_in=3600):
     )
     return s3.generate_presigned_url(
         "get_object",
-        Params={"Bucket": bucket, "Key": key},
+        Params={
+            "Bucket": bucket,
+            "Key": key,
+            "ResponseContentDisposition": "inline"  # <-- This makes browser open the file
+        },
         ExpiresIn=expires_in,
     )

@@ -10,7 +10,6 @@ from sqlalchemy import text, and_, or_
 from typing import List
 import random
 from app.models.appointment import Appointment
-from app.utils.mail import send_mail
 from app.utils.sms import send_sms
 import logging
 import openai
@@ -267,6 +266,14 @@ async def get_patients_by_doctor_id(db: AsyncSession, doctor_id: int):
     return result.scalars().all()
 
 async def summarize_patient_history(db: AsyncSession, patient_id: int):
+    result = await db.execute(select(Patient).filter(Patient.id == patient_id))
+    patient = result.scalars().first()
+    if not patient:
+        return None
+
+    if patient.patient_summary:
+        return patient.patient_summary
+
     from app.models.appointment import Appointment
     from app.models.test import Test
     from app.models.appointment_medicine import Medicine
@@ -358,4 +365,10 @@ async def summarize_patient_history(db: AsyncSession, patient_id: int):
     )
 
     summary = chat.choices[0].message.content
+
+    # Store summary in patient
+    patient.patient_summary = summary
+    await db.commit()
+    await db.refresh(patient)
+
     return summary

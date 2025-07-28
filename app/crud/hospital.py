@@ -10,6 +10,7 @@ from app.schemas.hospital import HospitalCreate, HospitalUpdate
 from app.schemas.hospital import HospitalResponse  
 from app.schemas.permission import PermissionResponse
 from app.schemas.hospital_payment import HospitalPaymentResponse
+from app.utils.s3 import get_presigned_url
 
 async def create_hospital(db: AsyncSession, hospital: HospitalCreate):
     try:
@@ -69,6 +70,11 @@ async def create_hospital(db: AsyncSession, hospital: HospitalCreate):
         hospital_dict["permissions"] = permissions
         hospital_dict["hospital_payments"] = hospital_payments
 
+        if hospital_dict.get("logo_url"):
+            hospital_dict["logo_presigned_url"] = get_presigned_url(hospital_dict["logo_url"])
+        else:
+            hospital_dict["logo_presigned_url"] = None
+
         return HospitalResponse.model_validate(hospital_dict)
     except IntegrityError as e:
         await db.rollback()
@@ -96,6 +102,11 @@ async def get_hospital(db: AsyncSession, hospital_id: int):
     hospital_dict["permissions"] = permissions
     hospital_dict["hospital_payments"] = hospital_payments
 
+    if hospital_dict.get("logo_url"):
+        hospital_dict["presigned_logo_url"] = get_presigned_url(hospital_dict["logo_url"])
+    else:
+        hospital_dict["presigned_logo_url"] = None
+
     return HospitalResponse.model_validate(hospital_dict)
 
 
@@ -120,6 +131,12 @@ async def get_hospitals(db: AsyncSession, skip: int = 0, limit: int = 100):
         hospital_dict = h.__dict__.copy()
         hospital_dict["permissions"] = permissions
         hospital_dict["hospital_payments"] = hospital_payments
+
+        if hospital_dict.get("logo_url"):
+            hospital_dict["presigned_logo_url"] = get_presigned_url(hospital_dict["logo_url"])
+        else:
+            hospital_dict["presigned_logo_url"] = None
+
         hospital_responses.append(HospitalResponse.model_validate(hospital_dict))
     return hospital_responses
 
@@ -152,6 +169,11 @@ async def update_hospital(db: AsyncSession, hospital_id: int, hospital_update: H
     hospital_dict = hospital_with_rel.__dict__.copy()
     hospital_dict["permissions"] = permissions
     hospital_dict["hospital_payments"] = hospital_payments
+
+    if hospital_dict.get("logo_url"):
+        hospital_dict["presigned_logo_url"] = get_presigned_url(hospital_dict["logo_url"])
+    else:
+        hospital_dict["presigned_logo_url"] = None
 
     return HospitalResponse.model_validate(hospital_dict)
 

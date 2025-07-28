@@ -7,6 +7,7 @@ import re
 from app.database import get_db
 from app.schemas.test import TestResponse
 from app.crud.test import create_test, update_test, get_test_by_id, get_tests_by_appointment_id, delete_test, get_tests_by_patient_id
+from app.utils.s3 import get_presigned_url
 
 router = APIRouter()
 
@@ -38,9 +39,24 @@ async def create_test_api(
     )
     return await create_test(db, test, files)
 
+def add_presigned_urls_to_test(test_obj):
+    urls = test_obj.tests_docs_urls or []
+    if isinstance(urls, str):
+        import json
+        urls = json.loads(urls)
+    presigned_urls = [
+        get_presigned_url(url)["presigned_url"] if isinstance(get_presigned_url(url), dict)
+        else get_presigned_url(url)
+        for url in urls
+    ]
+    test_obj.tests_docs_presigned_urls = presigned_urls
+    return test_obj
+
 @router.get("/", response_model=list[TestResponse])
 async def get_tests_by_appointment_id_api(appointment_id: int, db: AsyncSession = Depends(get_db), skip: int = 0, limit: int = 10):
-    return await get_tests_by_appointment_id(db, appointment_id, skip, limit)
+    tests = await get_tests_by_appointment_id(db, appointment_id, skip, limit)
+    tests_with_presigned = [add_presigned_urls_to_test(t) for t in tests]
+    return tests_with_presigned
 
 @router.get("/presign-url")
 def get_presigned_url(file_url: str = Query(...)):

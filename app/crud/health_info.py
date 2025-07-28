@@ -39,10 +39,10 @@ async def get_health_info_by_appointment_id(db: AsyncSession, appointment_id: in
     result = await db.execute(select(HealthInfo).filter(HealthInfo.appointment_id == appointment_id))
     health_info = result.scalars().first()
     
-    return health_info  # No need to raise HTTPException here, handled in route
+    return health_info
 
 async def update_health_info(db: AsyncSession, appointment_id: int, update_data: HealthInfoUpdate):
-    result = await db.execute(select(HealthInfo).filter(HealthInfo.appointment_id == appointment_id))
+    result = await db.execute(select(HealthInfo).filter(HealthInfo.id == appointment_id))
     health_info = result.scalars().first()
     
     if not health_info:

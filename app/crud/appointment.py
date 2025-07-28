@@ -26,7 +26,6 @@ import os
 from fastapi import UploadFile
 from dotenv import load_dotenv
 from app.utils.sms import send_sms
-from app.utils.mail import send_mail
 from app.models.hospital import Hospital
 from app.models.test import Test
 from app.models.appointment_medicine import Medicine
@@ -79,7 +78,13 @@ async def create_appointment(db: AsyncSession, appointment: AppointmentCreate):
     await db.commit()
     await db.refresh(db_appointment)
 
-    # Fetch related details
+    patient = await db.execute(select(Patient).filter(Patient.id == db_appointment.patient_id))
+    patient_obj = patient.scalars().first()
+    if patient_obj:
+        patient_obj.patient_summary = None
+        await db.commit()
+        await db.refresh(patient_obj)
+
     doctor = await db.execute(select(Doctor).filter(Doctor.id == db_appointment.doctor_id))
     doctor_obj = doctor.scalars().first()
     patient = await db.execute(select(Patient).filter(Patient.id == db_appointment.patient_id))

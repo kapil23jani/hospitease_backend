@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, BigInteger
+from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, BigInteger, Text
 from sqlalchemy.orm import relationship
 from app.database import Base
 
@@ -23,6 +23,7 @@ class Patient(Base):
     occupation = Column(String, nullable=True)
     is_dialysis_patient = Column(Boolean, default=False)
     zipcode = Column(String, nullable=True)
+    patient_summary = Column(Text, nullable=True)
     marital_status = Column(String, nullable=True)
     patient_unique_id = Column(String, unique=True, index=True, nullable=False)
     mrd_number = Column(BigInteger, unique=True, nullable=False, index=True)    
